@@ -15,9 +15,11 @@ argv: [within ID] mode [text] [anchor]
                    absent. The grandparent: a navigation rail item (landscape) wraps
                    its label one level deeper than a bottom-bar item.
   tab TEXT         print "cx cy x1 y1 x2 y2 TEXT" of the bottom-bar or rail item
-                   holding the first node labelled exactly TEXT: the label or its
-                   nearest ancestor that is clickable or selected (the selected item
-                   is not clickable); exit 1 when absent.
+                   labelled exactly TEXT: the label's nearest ancestor that is
+                   clickable or selected (the selected item is not clickable) and
+                   holds no other text. A list row that shows the same word (History's
+                   "Today" date badge) holds more text, so it is skipped; exit 1 when
+                   no item matches.
   overflow         print labels whose text node's bounds exceed the screen width or
                    have zero/negative width (clipped/off-screen text), one per line.
   scroll           print "x1 y1 x2 y2" of the largest vertically scrollable node.
@@ -73,14 +75,15 @@ if mode == "on":
 if mode == "tab":
     parent = {c: p for p in root.iter() for c in p}
     for n in root.iter("node"):
-        if want in (n.get("text"), n.get("content-desc")):
-            while n is not None and "true" not in (n.get("clickable"), n.get("selected")):
-                n = parent.get(n)
-            if n is None:
-                sys.exit(1)
-            x1, y1, x2, y2 = bounds(n)
-            print((x1 + x2) // 2, (y1 + y2) // 2, x1, y1, x2, y2, want)
-            sys.exit(0)
+        if want not in (n.get("text"), n.get("content-desc")):
+            continue
+        while n is not None and "true" not in (n.get("clickable"), n.get("selected")):
+            n = parent.get(n)
+        if n is None or {v for m in n.iter("node") for _, v in labels(m)} != {want}:
+            continue
+        x1, y1, x2, y2 = bounds(n)
+        print((x1 + x2) // 2, (y1 + y2) // 2, x1, y1, x2, y2, want)
+        sys.exit(0)
     sys.exit(1)
 
 nodes = list(root.iter("node"))
