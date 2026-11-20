@@ -225,7 +225,7 @@ class UxInvariantTest {
         for (title in rarer) {
             assertTrue("\"$title\" shows before More is opened", rule.onAllNodes(hasText(title) and hasClickAction()).fetchSemanticsNodes().isEmpty())
         }
-        rule.onNode(hasText(str(R.string.log_chooser_more)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.log_chooser_more)) and hasClickAction()).scrollClearOfChrome().performClick()
         for (title in rarer) {
             rule.assertCountEventually(hasText(title) and hasClickAction(), 1)
         }
@@ -351,7 +351,7 @@ class UxInvariantTest {
     @Test
     // The spot-check phone. The youth card's "Check age" opens
     // Profile, unfolds the plan answers and opens the Age row: its birthday
-    // picker shows whole, above the navigation bar, and the legacy stated age
+    // picker shows whole, above the floating navigation bar, and the legacy stated age
     // asks for the birthday.
     @Config(qualifiers = "w411dp-h660dp-xxhdpi")
     fun checkAge_opensTheFoldedPlanAnswersAtTheBirthdayPicker() {
@@ -359,11 +359,11 @@ class UxInvariantTest {
         rule.launchApp()
         rule.onAllNodes(hasText(str(R.string.main_hold_check_age)) and hasClickAction())[0].performClick()
         rule.waitForIdle()
-        val navTop = rule.onNodeWithText(str(R.string.main_dest_history)).getBoundsInRoot().top
+        val barTop = with(rule.density) { rule.floatingBarTop().toDp() }
         val pick = rule.onNode(hasText(str(R.string.setup_birthday_pick)) and hasClickAction())
         pick.assertIsDisplayed()
         assertEquals("the birthday picker is not cut off", pick.getUnclippedBoundsInRoot(), pick.getBoundsInRoot())
-        assertTrue("the picker sits above the navigation bar", pick.getUnclippedBoundsInRoot().bottom <= navTop)
+        assertTrue("the picker sits above the floating navigation bar", pick.getUnclippedBoundsInRoot().bottom <= barTop)
         rule.onAllNodes(hasText(str(R.string.setup_birthday_add_prompt))).assertCountEquals(1)
     }
 

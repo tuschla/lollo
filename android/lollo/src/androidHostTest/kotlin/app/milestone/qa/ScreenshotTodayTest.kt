@@ -166,6 +166,8 @@ class ScreenshotTodayTest {
         // The Progress card: the squat's best set per session, captioned
         // "<exercise> · estimated max" (matched by its fixed tail).
         rule.scrollTodayTo(hasText(str(R.string.main_e1rm_title, "").trim(), substring = true))
+        // Its caption, the card's last line, above the floating bar.
+        rule.onAllNodes(hasText(str(R.string.main_e1rm_caption_short), substring = true))[0].scrollClearOfChrome()
         rule.shot("today-progress-${mode.suffix}")
     }
 
@@ -269,7 +271,7 @@ class ScreenshotTodayTest {
         rule.shot("today-hypertrophy-top-${mode.suffix}")
         val section = hasText(str(R.string.main_muscle_volume_title).uppercase(Locale.US), substring = true) and hasClickAction()
         rule.scrollTodayTo(section)
-        rule.onNode(section).performClick()
+        rule.onNode(section).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         // To the end of Today so the whole expanded table, its last rows included,
         // sits clear of the Log button.
@@ -394,13 +396,13 @@ class ScreenshotTodayTest {
         QaHarness.seedLog(ctx, listOf(QaHarness.strengthProfile()))
         rule.launchApp()
         rule.openLogChooser()
-        rule.onNodeWithText(str(R.string.main_weekly_checkin_title)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.main_weekly_checkin_title)).scrollClearOfChrome().performClick()
         rule.waitForText(str(R.string.log_weekly_signs_q))
         rule.shot("log-weekly-top-${mode.suffix}")
-        rule.onNodeWithText(str(R.string.log_weekly_sign_sleep)).performScrollTo().performClick()
-        rule.onNodeWithText(str(R.string.log_weekly_sign_mood)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.log_weekly_sign_sleep)).scrollClearOfChrome().performClick()
+        rule.onNodeWithText(str(R.string.log_weekly_sign_mood)).scrollClearOfChrome().performClick()
         val (minWeeks, nforWeeks) = overtrainingWeekEdgeLabels()
-        rule.onNodeWithText(str(R.string.log_weekly_signs_1to2, minWeeks, nforWeeks)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.log_weekly_signs_1to2, minWeeks, nforWeeks)).scrollClearOfChrome().performClick()
         rule.onNodeWithText(str(R.string.log_weekly_signs_gt2, nforWeeks)).performScrollTo()
         rule.shot("log-weekly-mid-${mode.suffix}")
         rule.onNode(hasText(str(R.string.log_clinical_reds_ctx), substring = true)).performScrollTo()
@@ -436,7 +438,7 @@ class ScreenshotTodayTest {
         rule.launchApp()
         rule.openLogChooser()
         rule.shot("log-chooser-calis-top-${mode.suffix}")
-        rule.onNode(hasText(str(R.string.log_chooser_more)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.log_chooser_more)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.onNode(hasText(str(R.string.main_advanced_signal_title)) and hasClickAction()).performScrollTo()
         rule.shot("log-chooser-calis-bottom-${mode.suffix}")
     }

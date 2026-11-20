@@ -24,7 +24,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -202,7 +201,7 @@ class RatingScaleTest {
         // Weight, reps and effort wait for an exercise.
         val weight = hasContentDescription(str(R.string.log_field_weight), substring = true)
         assertEquals(0, rule.onAllNodes(weight).fetchSemanticsNodes().size)
-        rule.onNodeWithText("Back Squat").performScrollTo().performClick()
+        rule.onNodeWithText("Back Squat").scrollClearOfChrome().performClick()
         rule.waitForIdle()
         assertTrue("the weight well shows once Back Squat is picked", rule.onAllNodes(weight).fetchSemanticsNodes().isNotEmpty())
     }

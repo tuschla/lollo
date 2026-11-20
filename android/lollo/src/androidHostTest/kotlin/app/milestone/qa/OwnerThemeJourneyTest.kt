@@ -69,13 +69,13 @@ class OwnerThemeJourneyTest {
 
     private fun pick(t: AppTheme) {
         scrollTo(swatch(t))
-        rule.onNode(swatch(t)).performClick()
+        rule.onNode(swatch(t)).scrollClearOfChrome().performClick()
         rule.waitForIdle()
     }
 
     private fun flipAccent() {
         scrollTo(accent)
-        rule.onNode(accent).performClick()
+        rule.onNode(accent).scrollClearOfChrome().performClick()
         rule.waitForIdle()
     }
 

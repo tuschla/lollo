@@ -228,7 +228,7 @@ class ThisWeekCardTest {
         }
         val list = rule.onNode(hasScrollToNodeAction())
         list.performScrollToNode(hasTestTag("this-week"))
-        rule.onNodeWithContentDescription("Thursday", substring = true).performClick()
+        rule.onNodeWithContentDescription("Thursday", substring = true).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         val inWeek = hasAnyAncestor(hasTestTag("this-week"))
         list.performScrollToNode(inWeek and hasTestTag("plan-item:Back Squat"))

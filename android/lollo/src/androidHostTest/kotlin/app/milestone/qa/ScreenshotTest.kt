@@ -5,7 +5,6 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import app.milestone.DarkMode
 import app.milestone.R
@@ -68,7 +67,7 @@ class ScreenshotTest {
 
     @Test fun painTriageLight() {
         useDarkMode(DarkMode.Light); openToday(); rule.openLogChooser()
-        rule.onNodeWithText(str(R.string.main_report_pain)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.main_report_pain)).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.pickRating("pain-severity", 6)
         rule.shot("pain-triage-light")

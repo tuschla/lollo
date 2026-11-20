@@ -320,8 +320,9 @@ internal fun TodayDestination(
     }
 
     val layout = LocalWindowLayout.current
-    // The Log FAB floats over a phone's list; with the side rail Log is the rail's.
-    val bottomClearance = if (layout.navRail) Space.Lg.dp else TodayFabClearance
+    // The floating bar (with Log) lies over the list's foot: the last row scrolls
+    // clear of it. Beside the rail the inset is 0.
+    val bottomClearance = Space.Lg.dp + LocalBottomChromeInset.current
     val listSpacing = Arrangement.spacedBy(Space.Screen.dp)
     if (layout.twoPane && (showWeek || showProgress)) {
         TwoPaneRow(
@@ -881,11 +882,6 @@ internal fun coachingPerExercise(headlineExercise: String?, candidates: List<Adj
         k == null || (k != headlineKey && chosen[k] === a)
     }
 }
-
-/** Today's list bottom inset: the Log FAB (56dp) plus the scaffold's 16dp FAB
- *  margin plus a 16dp gap, so the last row scrolls fully clear of the floating
- *  button. Rows themselves keep the full card width (no FAB lane). */
-private val TodayFabClearance = 56.dp + 16.dp + 16.dp
 
 // Signals that need hardware the app can't read yet: never shown as pills
 // until an integration exists.

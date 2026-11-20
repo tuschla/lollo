@@ -19,7 +19,6 @@ import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -98,7 +97,7 @@ internal fun sessionShown(): SemanticsMatcher =
         hasText(str(R.string.main_rest_day_next_overline).uppercase(Locale.US))
 
 internal fun ComposeTestRule.tapText(text: String) {
-    onNode(hasText(text) and hasClickAction()).performScrollTo().performClick()
+    onNode(hasText(text) and hasClickAction()).scrollClearOfChrome().performClick()
     waitForIdle()
 }
 
@@ -131,7 +130,7 @@ internal fun ComposeTestRule.walkLiftSetup(birthdayDigits: String?, ill: Boolean
     }
     setupNext()
     if (ill) {
-        onNode(illToggle()).performScrollTo().performClick()
+        onNode(illToggle()).scrollClearOfChrome().performClick()
         waitForIdle()
     }
     setupNext()
@@ -172,7 +171,7 @@ internal object GuidedSetupWalk {
         Screen("level", R.string.setup_need_level) {
             for (group in 0..1) {
                 it.onAllNodes(hasText(str(R.string.setup_level_intermediate_title)) and hasClickAction())[group]
-                    .performScrollTo().performClick()
+                    .scrollClearOfChrome().performClick()
                 it.waitForIdle()
             }
         },
@@ -217,7 +216,7 @@ internal fun ComposeTestRule.finishSetup() {
 /** The birthday's "Prefer not to say" (the first of the About step's two: the
  *  birthday sits above the sex question). */
 internal fun ComposeTestRule.skipBirthday() {
-    onAllNodes(hasText(str(R.string.setup_birthday_skip)) and hasClickAction())[0].performScrollTo().performClick()
+    onAllNodes(hasText(str(R.string.setup_birthday_skip)) and hasClickAction())[0].scrollClearOfChrome().performClick()
     waitForIdle()
 }
 
@@ -234,7 +233,7 @@ internal fun ComposeTestRule.pickBirthday(pillText: String, digits: String): Boo
     // the same birthday is not.
     val pill = hasText(pillText) and hasClickAction() and !hasAnyAncestor(isDialog()) and
         SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton)
-    onNode(pill).performScrollTo().performClick()
+    onNode(pill).scrollClearOfChrome().performClick()
     waitForIdle()
     val field = onAllNodes(hasSetTextAction() and hasAnyAncestor(isDialog()))[0]
     field.performTextClearance()
@@ -257,7 +256,7 @@ internal fun ComposeTestRule.checkInIll(illnessAnswer: Int) {
     for (key in listOf("sleep", "soreness", "mood")) {
         pickRating("checkin-$key", 3)
     }
-    onNodeWithText(str(illnessAnswer), substring = true).performScrollTo().performClick()
+    onNodeWithText(str(illnessAnswer), substring = true).scrollClearOfChrome().performClick()
     tapEditorPrimary()
     waitForState { journeyLog().any { it.variant == "SubmitReadiness" && it.payload["signal"].toString().contains("Illness") } }
 }

@@ -38,22 +38,26 @@ internal fun RevealTarget(request: Boolean, onRevealed: () -> Unit, content: @Co
     ) { content() }
 }
 
-/** Last laid-out window y and width of a reveal target; written only from layout
- *  callbacks, so a plain holder rather than snapshot state. */
+/** Last laid-out window y, width and height of a reveal target; written only from
+ *  layout callbacks, so a plain holder rather than snapshot state. */
 internal class WindowTop {
     var y = Float.NaN
     var width = 0f
+    var height = 0f
 
     fun place(coords: LayoutCoordinates) {
         y = coords.positionInWindow().y
         width = coords.size.width.toFloat()
+        height = coords.size.height.toFloat()
     }
 }
 
-/** Height in px of the list a deep link reveals its row in (0 = unknown), written
- *  by that list's layout callback; a plain holder like [WindowTop]. */
+/** Height in px of the list a deep link reveals its row in (0 = unknown) and of
+ *  its foot under the floating nav bar ([obscured]), written by that list's layout
+ *  callback; a plain holder like [WindowTop]. */
 internal class RevealViewport {
     var height = 0
+    var obscured = 0
 }
 
 /** The list a deep-link reveal lands in. Without one (0 height) the reveal only
@@ -77,22 +81,32 @@ private const val REVEAL_MAX_FRAMES = 12
  * list keeping a toggled row under the finger) cancels one request, not the reveal.
  * With [landIn] (a deep link) each request asks for the band around the row that
  * lands it high in the list ([LAND_FROM_BELOW]); a row already there stays put.
+ * Without it, the first request ([top]'s own) keeps [foot] px free under the target:
+ * the list's foot under the floating nav bar, so an unfolded row ends above the bar.
  */
 internal suspend fun revealWhenSettled(
     top: WindowTop,
     vararg requesters: BringIntoViewRequester,
     landIn: RevealViewport? = null,
+    foot: Int = 0,
 ) {
     var last = Float.NaN
     repeat(REVEAL_MAX_FRAMES) {
         withFrameNanos { }
         val viewport = landIn?.height ?: 0
         val band = if (viewport > 0) {
-            Rect(0f, -viewport * LAND_FROM_ABOVE, top.width, viewport * (1f - LAND_FROM_BELOW))
+            // Landing heights count from the list's visible part; the band runs on
+            // under the bar, so the row's surroundings below it stay above the bar.
+            val obscured = landIn?.obscured ?: 0
+            val visible = viewport - obscured
+            Rect(0f, -visible * LAND_FROM_ABOVE, top.width, visible * (1f - LAND_FROM_BELOW) + obscured)
         } else {
             null
         }
-        for (r in requesters) r.bringIntoViewUnlessPreempted(band)
+        requesters.forEachIndexed { i, r ->
+            val clear = if (i == 0 && band == null && foot > 0) Rect(0f, 0f, top.width, top.height + foot) else null
+            r.bringIntoViewUnlessPreempted(band ?: clear)
+        }
         withFrameNanos { }
         if (top.y == last) return
         last = top.y

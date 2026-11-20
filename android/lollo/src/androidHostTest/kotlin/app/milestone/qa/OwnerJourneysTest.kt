@@ -17,7 +17,6 @@ import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import app.milestone.AppSettings
@@ -191,10 +190,10 @@ class OwnerJourneysTest {
         list.performScrollToNode(hasTestTag("this-week"))
         rule.onNode(
             hasClickAction() and hasContentDescription(str(R.string.main_details_subject, str(R.string.main_consistency_subject))),
-        ).performScrollTo().performClick()
+        ).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.onNode(hasText(str(R.string.main_remove_plan)) and hasClickAction() and !hasAnyAncestor(isDialog()))
-            .performScrollTo().performClick()
+            .scrollClearOfChrome().performClick()
         rule.onNode(hasText(str(R.string.main_remove_plan)) and hasAnyAncestor(isDialog())).performClick()
 
         rule.waitForState { EventDispatcher.model.value?.program == null }
@@ -229,7 +228,7 @@ class OwnerJourneysTest {
             rule.onNode(
                 hasText(str(R.string.main_hold_review_health)) and hasClickAction() and
                     hasAnyAncestor(hasText(str(R.string.main_plan_withheld_health_title))),
-            ).performScrollTo().performClick()
+            ).scrollClearOfChrome().performClick()
             rule.waitUntilDisplayed(illToggle())
             rule.onNode(illToggle()).assertIsOn()
         }

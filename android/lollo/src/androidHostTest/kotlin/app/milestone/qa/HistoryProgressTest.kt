@@ -107,7 +107,7 @@ class HistoryProgressTest {
         // Yesterday (Sunday) at midday, untagged → titled by its weekday.
         val title = str(R.string.history_run_weekday, "Sunday")
         rule.scrollToText(title)
-        rule.onNodeWithText(title).performClick()
+        rule.onNodeWithText(title).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         // Unrated: YOUR LOG offers "Rate this run"; no rating grid lives open on the sheet.
         rule.onAllNodesWithTag("effort-scale").assertCountEquals(0)
@@ -115,7 +115,7 @@ class HistoryProgressTest {
         rule.onNodeWithTag("run-log-effort").performClick()
         rule.waitForIdle()
         rule.pickRating("effort-scale", 7)
-        rule.onNodeWithTag("run-rate-save").performScrollTo().performClick()
+        rule.onNodeWithTag("run-rate-save").scrollClearOfChrome().performClick()
         rule.waitForIdle()
 
         // The card face reads the rating back from the core.
@@ -142,14 +142,14 @@ class HistoryProgressTest {
         rule.launchApp()
         rule.selectTab(str(R.string.main_dest_history))
         rule.scrollToText("Fastest 10K")
-        rule.onNodeWithText("Fastest 10K").performClick()
+        rule.onNodeWithText("Fastest 10K").scrollClearOfChrome().performClick()
         rule.waitForIdle()
         // The route loads off the main thread; Trim appears once it has.
         rule.waitForNode(hasTestTag("run-trim"))
         rule.onNodeWithTag("run-delete").performScrollTo()
         val sheet = violations()
         assertTrue("UX invariant(s) violated on the run sheet:\n" + sheet.joinToString("\n"), sheet.isEmpty())
-        rule.onNodeWithTag("run-log-effort").performScrollTo().performClick()
+        rule.onNodeWithTag("run-log-effort").scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("run-rate-save").performScrollTo()
         val rate = violations()

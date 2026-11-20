@@ -261,7 +261,7 @@ class LayoutRegressionTest : UiProbeTest() {
         rule.openLoopFor(first.exercise, set = 2)
         settle()
         // The loop's "Last: … · Edit" row opens the Edit set dialog.
-        rule.onNode(hasClickAction() and hasContentDescription(str(R.string.log_edit_set_cd, ""), substring = true)).performScrollTo().performClick()
+        rule.onNode(hasClickAction() and hasContentDescription(str(R.string.log_edit_set_cd, ""), substring = true)).scrollClearOfChrome().performClick()
         settle()
         // Type in the Edit set dialog, the top window (the loop under it has a
         // weight field and a keypad of its own).
@@ -274,7 +274,7 @@ class LayoutRegressionTest : UiProbeTest() {
         for (k in "127.52") {
             val key = if (k == '.') hasContentDescription(str(R.string.ui_cd_decimal_point)) else hasText("$k")
             topmost(hasClickAction() and (key or hasAnyDescendant(key)) and hasAnyAncestor(hasTestTag("numeric-keypad")))
-                .performScrollTo().performClick()
+                .scrollClearOfChrome().performClick()
         }
         settle()
         assertTrue("precondition: the weight field shows the typed 127.52:\n${screenDump()}", "127.52" in screenTexts())

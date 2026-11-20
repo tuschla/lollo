@@ -206,7 +206,7 @@ class CompletionScenarioTest {
         // under the three open cards, below the fold, so scroll to the end of the list
         // (past the Log button inset) as a user would before tapping it.
         rule.scrollTodayToEnd()
-        rule.onNodeWithText(str(R.string.plan_reopen)).performClick()
+        rule.onNodeWithText(str(R.string.plan_reopen)).scrollClearOfChrome().performClick()
         rule.assertCountEventually(hasText(str(R.string.plan_reopen)), 0)
         // The reopened item returns at the top of the lazy Today list, which the
         // scroll above moved out of composition: scroll back up before counting.

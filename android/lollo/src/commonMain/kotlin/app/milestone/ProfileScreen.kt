@@ -181,6 +181,10 @@ internal fun ProfileDestination(
     // Last laid-out top edge (NaN before the first layout); read only in the layout
     // callback, so a plain holder, not snapshot state.
     val viewportTop = remember { floatArrayOf(Float.NaN) }
+    // The floating bar lies over the list's foot: the Danger zone scrolls clear of
+    // it, and a deep link or an unfolded row lands in the part of the list above it.
+    val chromeInset = LocalBottomChromeInset.current
+    val chromeInsetPx = with(LocalDensity.current) { chromeInset.roundToPx() }
     CompositionLocalProvider(LocalRevealViewport provides revealViewport) {
         ReadableWidth { gutter ->
             LazyColumn(
@@ -189,12 +193,13 @@ internal fun ProfileDestination(
                     .fillMaxSize()
                     .onGloballyPositioned { coords ->
                         revealViewport.height = coords.size.height
+                        revealViewport.obscured = chromeInsetPx
                         val top = coords.positionInWindow().y
                         val shift = if (viewportTop[0].isNaN()) 0f else top - viewportTop[0]
                         viewportTop[0] = top
                         if (shift != 0f) scope.launch { listState.scrollBy(shift) }
                     },
-                contentPadding = PaddingValues(horizontal = gutter, vertical = Space.Screen.dp),
+                contentPadding = PaddingValues(start = gutter, end = gutter, top = Space.Screen.dp, bottom = Space.Screen.dp + chromeInset),
                 verticalArrangement = Arrangement.spacedBy(Space.Screen.dp),
             ) {
                 CalculatorsSection(model, onOpen = { activeTool = it })

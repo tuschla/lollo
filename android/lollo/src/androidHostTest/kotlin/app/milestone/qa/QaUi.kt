@@ -7,12 +7,15 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
@@ -30,6 +33,7 @@ import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.platform.app.InstrumentationRegistry
 import app.milestone.AppRuntime
 import app.milestone.AppSettings
 import app.milestone.DarkMode
@@ -151,7 +155,7 @@ fun ComposeTestRule.selectTab(label: String) {
 fun ComposeTestRule.openPlanAnswers() {
     val tile = hasText(str(R.string.main_plan_answers_title)) and androidx.compose.ui.test.hasClickAction()
     onAllNodes(hasScrollToNodeAction())[0].performScrollToNode(tile)
-    onNode(tile).performClick()
+    onNode(tile).scrollClearOfChrome().performClick()
     waitForIdle()
 }
 
@@ -162,7 +166,7 @@ fun ComposeTestRule.typeWeight(figures: String) {
     onAllNodes(
         androidx.compose.ui.test.hasClickAction() and
             androidx.compose.ui.test.hasContentDescription(str(R.string.log_field_weight), substring = true),
-    )[0].performScrollTo().performClick()
+    )[0].scrollClearOfChrome().performClick()
     figures.forEach { c ->
         val key = if (c == '.') {
             androidx.compose.ui.test.hasContentDescription(str(R.string.ui_cd_decimal_point))
@@ -173,12 +177,12 @@ fun ComposeTestRule.typeWeight(figures: String) {
             androidx.compose.ui.test.hasClickAction() and
                 (key or androidx.compose.ui.test.hasAnyDescendant(key)) and
                 androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.hasTestTag("numeric-keypad")),
-        ).performScrollTo().performClick()
+        ).scrollClearOfChrome().performClick()
     }
     onNode(
         androidx.compose.ui.test.hasClickAction() and hasText(str(R.string.log_keypad_done)) and
             androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.hasTestTag("numeric-keypad")),
-    ).performScrollTo().performClick()
+    ).scrollClearOfChrome().performClick()
     waitForIdle()
 }
 
@@ -189,7 +193,7 @@ fun ComposeTestRule.openLoopFor(exercise: String, set: Int = 1) {
         androidx.compose.ui.test.hasClickAction() and
             androidx.compose.ui.test.hasContentDescription(strPrefix(R.string.plan_log_set_n_of_n, set), substring = true) and
             androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.hasTestTag("plan-item:$exercise")),
-    ).performScrollTo().performClick()
+    ).scrollClearOfChrome().performClick()
     waitUntil(15_000) {
         onAllNodes(hasText(strPrefix(R.string.log_set_header_n_of_n, set), substring = true)).fetchSemanticsNodes().isNotEmpty()
     }
@@ -197,8 +201,62 @@ fun ComposeTestRule.openLoopFor(exercise: String, set: Int = 1) {
 
 fun setHeader(k: Int, n: Int) = str(R.string.log_set_header_n_of_n, k, n)
 
-/** The bottom bar's Log button, which opens the log chooser. */
+/** Today's Log button (in the floating bar, or the rail's header), which opens the
+ *  log chooser. */
 val logFab: SemanticsMatcher get() = hasClickAction() and hasContentDescription(str(R.string.main_log))
+
+/** What floats over the foot of a destination: the navigation pill and, on Today,
+ *  the Log button beside or above it. */
+val floatingChrome: SemanticsMatcher get() = hasTestTag("nav-pill") or logFab
+
+/** Bounds of every [floatingChrome] node. */
+fun ComposeTestRule.floatingChromeBounds(): List<androidx.compose.ui.geometry.Rect> =
+    onAllNodes(floatingChrome).fetchSemanticsNodes().map { it.boundsInRoot }
+
+/** Top edge (px) of the floating bar: the highest of its pill and Log button. */
+fun ComposeTestRule.floatingBarTop(): Float = floatingChromeBounds().minOf { it.top }
+
+/** The run-in-progress chip, which stands above the floating bar while a run
+ *  records: its clickable node, in the merged or the unmerged tree. */
+private val runChip: SemanticsMatcher get() = str(R.string.main_run_in_progress).let { text ->
+    hasClickAction() and (hasText(text) or hasAnyDescendant(hasText(text)))
+}
+
+/**
+ * Scroll this node into view ([performScrollTo]) and then on until it clears the
+ * chrome floating over the foot of the destination (the navigation pill, the Log
+ * button and the run chip above them), so a tap lands on the node and not on the
+ * bar. Compose's own scroll counts the part of the list under the bar as visible.
+ * Each list ends with the bar's height as padding (`LocalBottomChromeInset`), so
+ * every row can scroll clear; a node that stays under the bar fails here. A node
+ * taller than the room above the bar keeps its top in view and needs its centre
+ * (where `performClick` taps) clear. Changes nothing for a node in a sheet or a
+ * dialog (another root) or beside the rail.
+ */
+fun SemanticsNodeInteraction.scrollClearOfChrome(): SemanticsNodeInteraction {
+    performScrollTo()
+    var barTop = Float.POSITIVE_INFINITY
+    repeat(3) {
+        val node = fetchSemanticsNode()
+        val box = node.boundsInRoot
+        val root = generateSequence(node) { it.parent }.last()
+        barTop = flatten(root).filter { (floatingChrome or runChip).matches(it) }.map { it.boundsInRoot }
+            .filter { it.left < box.right && it.right > box.left }
+            .minOfOrNull { it.top } ?: return this
+        if (box.bottom <= barTop) return this
+        val list = generateSequence(node.parent) { it.parent }.firstOrNull {
+            SemanticsActions.ScrollBy in it.config && SemanticsProperties.VerticalScrollAxisRange in it.config
+        } ?: error("$box lies under the floating bar (top $barTop) outside any vertical scroll container")
+        val dy = minOf(box.bottom - barTop, box.top - list.boundsInRoot.top)
+        if (dy <= 0f) return@repeat
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            list.config[SemanticsActions.ScrollBy].action?.invoke(0f, dy)
+        }
+    }
+    val box = fetchSemanticsNode().boundsInRoot
+    check(box.center.y < barTop) { "$box stays under the floating bar (top $barTop): the list cannot scroll it clear" }
+    return this
+}
 
 /** Wait until a node shows [text] and the UI is idle. */
 fun ComposeTestRule.waitForText(text: String, substring: Boolean = false) {
@@ -215,7 +273,7 @@ fun ComposeTestRule.openLogChooser() {
 /** From Today: open the morning check-in from the log chooser and wait for its first scale. */
 fun ComposeTestRule.openMorningCheckin() {
     openLogChooser()
-    onNodeWithText(str(R.string.main_morning_checkin_title)).performScrollTo().performClick()
+    onNodeWithText(str(R.string.main_morning_checkin_title)).scrollClearOfChrome().performClick()
     waitForNode(hasTestTag("checkin-sleep"))
 }
 

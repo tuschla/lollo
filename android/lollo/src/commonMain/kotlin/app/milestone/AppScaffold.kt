@@ -3,7 +3,10 @@ package app.milestone
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,16 +14,11 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.NavigationRailDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -37,18 +35,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import app.milestone.resources.Res
-import app.milestone.resources.ic_action_log_plus
-import app.milestone.resources.main_log
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 
 /** The app's root: decides the window's [WindowLayout] once and hands it down. */
 @Composable
@@ -230,30 +220,30 @@ private fun CoachScaffoldBody(session: CoachSession) {
     // definitions of jargon, NOT KB training claims.
     var glossaryTerm by rememberSaveable { mutableStateOf<String?>(null) }
 
-    // Today's scroll position, hoisted so the Log FAB can collapse to its icon
+    // Today's scroll position, hoisted so the bar's Log button drops its "Log" text
     // once the list leaves the top.
     val todayListState = rememberLazyListState()
-    val fabExpanded by remember { derivedStateOf { todayListState.firstVisibleItemIndex == 0 } }
+    val logExpanded by remember { derivedStateOf { todayListState.firstVisibleItemIndex == 0 } }
     val scope = rememberCoroutineScope()
 
-    // The Today Log FAB. Reopening always resets to the chooser so the sheet
+    // The Today Log button. Reopening always resets to the chooser so the sheet
     // never reappears mid-editor.
     val openLog: () -> Unit = { openSheet(LogMode.Chooser) }
 
     // The bottom bar's measured height: the top chrome keeps the app bar off it.
     var bottomBarPx by remember { mutableIntStateOf(0) }
-    // The nav bar's own measured height, kept while the rail replaces it, so the
-    // rail decision below is judged against the bar it would bring back.
+    // The floating bar's own measured height, kept while the rail replaces it, so
+    // the rail decision below is judged against the bar it would bring back.
     var navBarPx by remember { mutableIntStateOf(0) }
     // The chrome gives way to the pinned safety banner, never the reverse: when the
-    // bottom nav and the Log button no longer fit under the banner (a landscape
-    // phone under a hold), a side rail carries the destinations and Log, beside the
-    // banner instead of over it. A wide or a short window always takes the rail
-    // (visual-design-system §5 "Adaptive layout").
+    // banner leaves too little room above the floating bar (a portrait phone at a
+    // large font under a hold), a side rail carries the destinations and Log,
+    // beside the banner instead of under it. A wide or a short window always takes
+    // the rail (visual-design-system §5 "Adaptive layout").
     var bannerRail by remember { mutableStateOf(false) }
     val windowLayout = LocalWindowLayout.current
     val navRail = bannerRail || windowLayout.navRail
-    val logRoomPx = with(LocalDensity.current) { LogButtonRoom.roundToPx() }
+    val contentRoomPx = with(LocalDensity.current) { ContentRoomUnderBanner.roundToPx() }
     Row(Modifier.fillMaxSize().background(BgTop)) {
         if (navRail) {
             MilestoneNavRail(
@@ -271,7 +261,8 @@ private fun CoachScaffoldBody(session: CoachSession) {
                 if (navRail) Modifier.consumeWindowInsets(NavigationRailDefaults.windowInsets.only(WindowInsetsSides.Start)) else Modifier,
             ),
             containerColor = BgTop,
-            // M3 lays the snackbar above the FAB on Today and above the nav bar elsewhere.
+            // M3 lays the snackbar above the whole bottom bar: the run chip and the
+            // floating bar with its Log button.
             snackbarHost = { UiMessageHost() },
             topBar = {
                 // Chrome §5 stacking order: status bar → SAFETY BANNER → app bar.
@@ -283,7 +274,7 @@ private fun CoachScaffoldBody(session: CoachSession) {
                 TopChrome(
                     bottomBarPx = bottomBarPx,
                     navBarPx = navBarPx,
-                    logRoomPx = logRoomPx,
+                    contentRoomPx = contentRoomPx,
                     onNeedsRail = { if (bannerRail != it) bannerRail = it },
                     banner = {
                         SafetyBannerHost(
@@ -312,40 +303,17 @@ private fun CoachScaffoldBody(session: CoachSession) {
                     if (liveTracking && !session.showTracker) {
                         RunInProgressChip { session.showTracker = true }
                     }
+                    // The Log button belongs to Today only (chrome §1). With the rail,
+                    // Log is the rail's header instead.
                     if (!navRail) {
-                        Box(Modifier.onSizeChanged { navBarPx = it.height }) {
-                            MilestoneNavBar(selected) { selected = it }
-                        }
+                        FloatingNavBar(
+                            selected,
+                            onSelect = { selected = it },
+                            onLog = if (selected == Dest.Today) openLog else null,
+                            logExpanded = logExpanded,
+                            modifier = Modifier.onSizeChanged { navBarPx = it.height },
+                        )
                     }
-                }
-            },
-            floatingActionButton = {
-                // The Log FAB belongs to Today only (chrome §1). It floats over the
-                // list; Today's rows keep their full width and the list's bottom
-                // padding lets its last row scroll clear of it. With the rail, Log is
-                // the rail's header instead.
-                if (selected == Dest.Today && !navRail) {
-                    val logLabel = stringResource(Res.string.main_log)
-                    ExtendedFloatingActionButton(
-                        onClick = openLog,
-                        expanded = fabExpanded,
-                        // The extended FAB clears its content's semantics, so the
-                        // visible "Log" text never reaches TalkBack; name the button.
-                        modifier = Modifier.testTag("log-fab").semantics { contentDescription = logLabel },
-                        containerColor = Accent,
-                        // Dark OnAccent on every accent fill: white (#fff) text fails
-                        // AA contrast against the accent here.
-                        contentColor = OnAccent,
-                        shape = RoundedCornerShape(Space.Card.dp),
-                        text = { Text(logLabel, style = Type.Body.copy(fontWeight = FontWeight.ExtraBold)) },
-                        icon = {
-                            Icon(
-                                painterResource(Res.drawable.ic_action_log_plus),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                    )
                 }
             },
         ) { pad ->
@@ -368,12 +336,27 @@ private fun CoachScaffoldBody(session: CoachSession) {
                     )
                 },
             )
+            // The floating bar floats over the destination's bottom edge (the content
+            // shows under and around it); each list ends with the bar's height as
+            // padding ([LocalBottomChromeInset]). Beside the rail the destination ends
+            // above the bottom chrome (the run chip) as before.
+            val layoutDirection = LocalLayoutDirection.current
+            val contentPad = if (navRail) {
+                pad
+            } else {
+                PaddingValues(
+                    start = pad.calculateStartPadding(layoutDirection),
+                    top = pad.calculateTopPadding(),
+                    end = pad.calculateEndPadding(layoutDirection),
+                )
+            }
             CompositionLocalProvider(
                 LocalEvidenceLegend provides { showLegend = true },
                 LocalGlossary provides { term -> glossaryTerm = term },
+                LocalBottomChromeInset provides if (navRail) 0.dp else pad.calculateBottomPadding(),
             ) {
                 // Destinations are pure projections of the one hoisted `model`.
-                Box(Modifier.fillMaxSize().padding(pad)) {
+                Box(Modifier.fillMaxSize().padding(contentPad)) {
                     when (selected) {
                         Dest.Today -> {
                             TodayDestination(
@@ -469,9 +452,10 @@ private fun CoachScaffoldBody(session: CoachSession) {
     }
 }
 
-/** Room the Log button needs under the banner: the extended FAB (56dp) and
- *  the Scaffold's 16dp FAB margin. */
-private val LogButtonRoom = 72.dp
+/** The least height the safety banner must leave the destination above the
+ *  floating bar before the side rail takes the destinations: one 48dp row and its
+ *  24dp gutter, so the screen still shows a row of its content. */
+private val ContentRoomUnderBanner = 72.dp
 
 /**
  * The destinations' top chrome under the status bar: the safety [banner], then
@@ -480,16 +464,16 @@ private val LogButtonRoom = 72.dp
  * extras). The app bar is brand chrome only, so when the banner leaves it no room
  * above the bottom bar ([bottomBarPx], the Scaffold places the two from opposite
  * edges) it is left out instead of being laid over the navigation labels.
- * [onNeedsRail] reports whether a banner leaves less than [logRoomPx] between
- * it and the nav bar ([navBarPx]): the nav bar and the Log button would then be
- * laid over it, so the host swaps them for a side rail (a landscape phone under
- * a hold).
+ * [onNeedsRail] reports whether a banner leaves less than [contentRoomPx] between
+ * it and the floating bar ([navBarPx]): the bar would then all but meet the banner
+ * (a portrait phone at a large font under a hold), so the host swaps it for a side
+ * rail.
  */
 @Composable
 private fun TopChrome(
     bottomBarPx: Int,
     navBarPx: Int,
-    logRoomPx: Int,
+    contentRoomPx: Int,
     onNeedsRail: (Boolean) -> Unit,
     banner: @Composable () -> Unit,
     appBar: @Composable () -> Unit,
@@ -500,7 +484,7 @@ private fun TopChrome(
         val bars = appBarSlot.map { it.measure(loose) }
         val bannerHeight = banners.sumOf { it.height }
         val barHeight = bars.sumOf { it.height }
-        onNeedsRail(bannerHeight > 0 && c.hasBoundedHeight && c.maxHeight - bannerHeight - navBarPx < logRoomPx)
+        onNeedsRail(bannerHeight > 0 && c.hasBoundedHeight && c.maxHeight - bannerHeight - navBarPx < contentRoomPx)
         val showBar = !c.hasBoundedHeight || bannerHeight + barHeight <= c.maxHeight - bottomBarPx
         val width = if (c.hasBoundedWidth) c.maxWidth else (banners + bars).maxOfOrNull { it.width } ?: 0
         layout(width, bannerHeight + if (showBar) barHeight else 0) {

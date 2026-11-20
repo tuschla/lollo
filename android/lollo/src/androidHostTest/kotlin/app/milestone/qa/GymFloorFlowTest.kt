@@ -209,8 +209,8 @@ class GymFloorFlowTest {
         // A light ramp set typed on the keypad (not the reps/effort chips); the
         // keypad opens under the weight well once the well is tapped.
         rule.onNode(weightWell(shown)).performClick()
-        rule.onNode(hasText("6") and hasAnyAncestor(hasTestTag("numeric-keypad"))).performScrollTo().performClick()
-        rule.onNode(hasText("0") and hasAnyAncestor(hasTestTag("numeric-keypad"))).performScrollTo().performClick()
+        rule.onNode(hasText("6") and hasAnyAncestor(hasTestTag("numeric-keypad"))).scrollClearOfChrome().performClick()
+        rule.onNode(hasText("0") and hasAnyAncestor(hasTestTag("numeric-keypad"))).scrollClearOfChrome().performClick()
         rule.tapEditorPrimary()
         // Not counted as set 1, and the working load comes back for the next set.
         rule.assertCountEventually(weightWell(shown), 1)
@@ -240,10 +240,10 @@ class GymFloorFlowTest {
         rule.onNodeWithText(str(R.string.main_log_set_title)).performClick()
         rule.onNode(hasSetTextAction()).performTextInput("Curl")
         // A new name is confirmed with "+ Add"; then weight, reps and effort show.
-        rule.onNodeWithText(str(R.string.log_add_exercise, "Curl")).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.log_add_exercise, "Curl")).scrollClearOfChrome().performClick()
         rule.typeWeight("10")
         // The unset reps row opens centred on the common 8–10 band, so 5 is scrolled to.
-        rule.onNode(hasText("5") and hasAnyAncestor(hasTestTag("reps-scale"))).performScrollTo().performClick()
+        rule.onNode(hasText("5") and hasAnyAncestor(hasTestTag("reps-scale"))).scrollClearOfChrome().performClick()
         rule.tapEditorPrimary()
         // The sheet stays open on the next set of the same exercise.
         rule.assertCountEventually(hasText(str(R.string.log_set_header_n, 2)), 1)
@@ -364,11 +364,11 @@ class GymFloorFlowTest {
         QaHarness.seedLog(ctx, listOf(QaHarness.strengthProfile()))
         rule.launchApp()
         rule.openLogChooser()
-        rule.onNodeWithText(str(R.string.main_weekly_checkin_title)).performScrollTo().performClick()
-        rule.onNodeWithText(str(R.string.log_weekly_sign_sleep)).performScrollTo().performClick()
-        rule.onNodeWithText(str(R.string.log_weekly_sign_mood)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.main_weekly_checkin_title)).scrollClearOfChrome().performClick()
+        rule.onNodeWithText(str(R.string.log_weekly_sign_sleep)).scrollClearOfChrome().performClick()
+        rule.onNodeWithText(str(R.string.log_weekly_sign_mood)).scrollClearOfChrome().performClick()
         val (minWeeks, nforWeeks) = overtrainingWeekEdgeLabels()
-        rule.onNodeWithText(str(R.string.log_weekly_signs_1to2, minWeeks, nforWeeks)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.log_weekly_signs_1to2, minWeeks, nforWeeks)).scrollClearOfChrome().performClick()
         rule.tapEditorPrimary()
         rule.waitForState { journeyLog().any { it.variant == "SubmitWeeklyCheckin" } }
         val payload = journeyLog().last { it.variant == "SubmitWeeklyCheckin" }.payload
@@ -381,8 +381,8 @@ class GymFloorFlowTest {
 
         // Reopened, the sheet offers to clear the check-in in force.
         rule.openLogChooser()
-        rule.onNodeWithText(str(R.string.main_weekly_checkin_title)).performScrollTo().performClick()
-        rule.onNodeWithText(str(R.string.log_weekly_clear)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.main_weekly_checkin_title)).scrollClearOfChrome().performClick()
+        rule.onNodeWithText(str(R.string.log_weekly_clear)).scrollClearOfChrome().performClick()
         rule.onNode(hasText(str(R.string.log_weekly_clear_confirm)) and hasAnyAncestor(isDialog())).performClick()
         rule.waitForState { EventDispatcher.model.value?.weekly_checkin_present == false }
     }
@@ -402,7 +402,7 @@ class GymFloorFlowTest {
         }
         // The helper line says what each answer means for training.
         rule.onNodeWithText(str(R.string.log_illness_help), substring = true).performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText(str(R.string.log_illness_above_neck), substring = true).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.log_illness_above_neck), substring = true).scrollClearOfChrome().performClick()
         rule.tapEditorPrimary()
         // The published model, not just the log line: the view can lag the append.
         rule.waitForState { resolveLabels().isNotEmpty() }

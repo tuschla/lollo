@@ -14,7 +14,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
@@ -104,7 +103,7 @@ class HistorySessionTest {
         rule.onAllNodes(hasContentDescription(plural(R.plurals.log_reps_left, 2, 2), substring = true)).assertCountEquals(3)
         rule.onAllNodesWithText(str(R.string.history_delete_session)).assertCountEquals(1)
         // Deleting the session always confirms first.
-        rule.onNodeWithTag("lift-session-delete").performScrollTo().performClick()
+        rule.onNodeWithTag("lift-session-delete").scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.onAllNodesWithText(str(R.string.history_delete_session_title)).assertCountEquals(1)
     }
@@ -132,7 +131,7 @@ class HistorySessionTest {
         // No filled slab: Edit and Delete are ActionRows, and Delete confirms first.
         rule.onAllNodesWithText(str(R.string.main_edit)).assertCountEquals(0)
         rule.onAllNodesWithText(str(R.string.history_edit_set)).assertCountEquals(1)
-        rule.onNodeWithTag("set-detail-delete").performScrollTo().performClick()
+        rule.onNodeWithTag("set-detail-delete").scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.onAllNodesWithText(str(R.string.main_delete_set_title)).assertCountEquals(1)
         assertEquals(1, EventDispatcher.model.value!!.lifts.size)

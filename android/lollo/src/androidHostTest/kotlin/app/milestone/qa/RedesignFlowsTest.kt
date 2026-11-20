@@ -50,7 +50,7 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Interaction tests that try to break the redesigned surfaces over the REAL
- * core: the Today-only "+ Log" FAB from every Today
+ * core: the Today-only Log button from every Today
  * state, the StatusCard / banner actions, the run detail sheet's rate / trim /
  * delete / export rows, every RatingScale editor, the calculators, the glossary,
  * the Log set editor and the weekly check-in's Save gate. Every assertion is on
@@ -100,23 +100,24 @@ class RedesignFlowsTest {
         rule.launchApp()
     }
 
-    private fun assertLastRowClearOfFab(state: String) {
+    private fun assertLastRowClearOfBar(state: String) {
         rule.waitForNode(logFab)
         rule.scrollTodayToEnd()
         val listNode = rule.onAllNodes(hasScrollToIndexAction())[0].fetchSemanticsNode()
-        val fab = rule.onNode(logFab).fetchSemanticsNode().boundsInRoot
+        val bar = rule.floatingChromeBounds()
+        val barTop = bar.minOf { it.top }
         val rows = listNode.children.map { it.boundsInRoot }.filter { it.height > 0f }
         assertTrue("[$state] Today has rows", rows.isNotEmpty())
         val lastBottom = rows.maxOf { it.bottom }
         assertTrue(
-            "[$state] the last row (bottom $lastBottom px) scrolls clear of the Log FAB (top ${fab.top} px)",
-            lastBottom <= fab.top + 1f,
+            "[$state] the last row (bottom $lastBottom px) scrolls clear of the floating bar and Log (top $barTop px)",
+            lastBottom <= barTop + 1f,
         )
         val covered = rule.onAllNodes(hasClickAction() and hasAnyAncestor(hasScrollToIndexAction()))
             .fetchSemanticsNodes()
-            .filter { it.boundsInRoot.height > 0f && it.boundsInRoot.overlapsStrictly(fab) }
+            .filter { n -> n.boundsInRoot.height > 0f && bar.any { n.boundsInRoot.overlapsStrictly(it) } }
             .map { n -> n.config.getOrNull(SemanticsProperties.ContentDescription) ?: n.config.getOrNull(SemanticsProperties.Text) }
-        assertTrue("[$state] controls under the Log FAB at the end of Today: $covered", covered.isEmpty())
+        assertTrue("[$state] controls under the floating bar at the end of Today: $covered", covered.isEmpty())
     }
 
     private fun Rect.overlapsStrictly(o: Rect): Boolean =
@@ -138,7 +139,7 @@ class RedesignFlowsTest {
     fun fab_liftDay_opensChooserWithTodaysPlan_andLastRowClears() {
         QaHarness.seedLog(ctx, listOf(QaHarness.strengthProfile(), QaHarness.loggedSquat(QaHarness.daysAgoAtMidday(2))))
         rule.launchApp()
-        assertLastRowClearOfFab("lift day")
+        assertLastRowClearOfBar("lift day")
         openChooserFromFab("lift day")
         assertEquals("today's plan fast-path", 1, rule.countOf(todaysPlanRow))
         assertEquals(1, rule.countOf(row(R.string.main_log_set_title)))
@@ -154,7 +155,7 @@ class RedesignFlowsTest {
         assertTrue("scenario: a rest day this week: ${vm.week_plan.map { it.epoch_day to it.items.size }}", rest != null)
         relaunchOn(rest!!.epoch_day)
         rule.waitForNode(hasText(str(R.string.main_rest_day_next_overline).uppercase(Locale.US)))
-        assertLastRowClearOfFab("rest day")
+        assertLastRowClearOfBar("rest day")
         openChooserFromFab("rest day")
         assertEquals("no session today, no plan row", 0, rule.countOf(todaysPlanRow))
         assertEquals(1, rule.countOf(row(R.string.main_log_set_title)))
@@ -169,7 +170,7 @@ class RedesignFlowsTest {
         val runDay = vm.week_plan.first { d -> d.epoch_day >= today && d.items.any { it.run_target != null } }
         if (runDay.epoch_day != today) relaunchOn(runDay.epoch_day)
         rule.waitForNode(hasTestTag("plan-item:run"))
-        assertLastRowClearOfFab("run day")
+        assertLastRowClearOfBar("run day")
         openChooserFromFab("run day")
         assertEquals(1, rule.countOf(row(R.string.main_track_run_title)))
         assertEquals("today's run fast-path", 1, rule.countOf(todaysPlanRow))
@@ -188,9 +189,9 @@ class RedesignFlowsTest {
         rule.onNode(hasContentDescription(str(R.string.main_close)) and hasClickAction()).performClick()
         rule.waitForIdle()
         rule.waitUntil(10_000) { rule.countOf(hasText(str(R.string.log_set_header_n_of_n, 2, first.sets))) == 0 }
-        assertLastRowClearOfFab("mid loop")
+        assertLastRowClearOfBar("mid loop")
         openChooserFromFab("mid loop")
-        rule.onNode(todaysPlanRow).performScrollTo().performClick()
+        rule.onNode(todaysPlanRow).scrollClearOfChrome().performClick()
         rule.waitForNode(hasText(str(R.string.log_set_header_n_of_n, 2, first.sets)))
         assertEquals("the loop continues on ${first.exercise}", 1, rule.countOf(hasTestTag("loop-exercise") and hasText(first.exercise)))
     }
@@ -204,7 +205,7 @@ class RedesignFlowsTest {
         rule.launchApp()
         assertTrue(EventDispatcher.model.value!!.train_blocked)
         rule.waitForNode(hasText(str(R.string.main_do_not_train)))
-        assertLastRowClearOfFab("pain hold")
+        assertLastRowClearOfBar("pain hold")
         openChooserFromFab("pain hold")
         assertEquals("no plan fast-path while training is held", 0, rule.countOf(todaysPlanRow))
         assertEquals(0, rule.countOf(hasText(strPrefix(R.string.log_chooser_resume), substring = true)))
@@ -218,7 +219,7 @@ class RedesignFlowsTest {
         )
         rule.launchApp()
         rule.waitForNode(hasText(resolveLabels().single()))
-        assertLastRowClearOfFab("illness")
+        assertLastRowClearOfBar("illness")
         openChooserFromFab("illness")
     }
 
@@ -227,7 +228,7 @@ class RedesignFlowsTest {
         ctx.setupPrefs().edit().putBoolean(app.milestone.KEY_ONBOARDING_DONE, true).commit()
         rule.launchApp()
         rule.waitForNode(row(R.string.main_setup_prompt_cta))
-        assertLastRowClearOfFab("new user")
+        assertLastRowClearOfBar("new user")
         openChooserFromFab("new user")
         for (title in listOf(R.string.main_track_run_title, R.string.main_log_set_title, R.string.main_log_run_title)) {
             assertEquals("new user chooser row ${str(title)}", 1, rule.countOf(row(title)))
@@ -241,7 +242,7 @@ class RedesignFlowsTest {
         rule.launchApp()
         rule.waitForNode(hasText(str(R.string.main_hold_youth_title).uppercase(Locale.US)))
         assertEquals("no DO NOT TRAIN banner under 18", 0, rule.countOf(hasText(str(R.string.main_do_not_train))))
-        assertLastRowClearOfFab("under 18")
+        assertLastRowClearOfBar("under 18")
         openChooserFromFab("under 18")
         // The chooser's own row (Today's activity card has a same-titled action under the sheet).
         assertEquals(1, rule.countOf(hasText(str(R.string.activity_chooser_sub), substring = true) and hasClickAction()))
@@ -283,10 +284,10 @@ class RedesignFlowsTest {
         openChooserFromFab("pain report")
         rule.onNode(row(R.string.main_report_pain)).performClick()
         rule.waitForNode(hasTestTag("pain-severity"))
-        rule.onAllNodes(hasText(str(R.string.log_pain_area_left_knee)) and hasClickAction())[0].performScrollTo().performClick()
+        rule.onAllNodes(hasText(str(R.string.log_pain_area_left_knee)) and hasClickAction())[0].scrollClearOfChrome().performClick()
         // "What does it feel like?" is a tap-row that unfolds its options.
-        rule.onNode(hasText(str(R.string.log_pain_feel)) and hasClickAction()).performScrollTo().performClick()
-        rule.onAllNodes(hasText(str(R.string.log_pain_char_tendon)))[0].performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.log_pain_feel)) and hasClickAction()).scrollClearOfChrome().performClick()
+        rule.onAllNodes(hasText(str(R.string.log_pain_char_tendon)))[0].scrollClearOfChrome().performClick()
         rule.pickRating("pain-severity", 3)
         rule.onAllNodes(hasText(str(R.string.log_report_pain)) and hasClickAction())[0].performClick()
         // The log gets the report before the core builds its view: wait for the
@@ -299,14 +300,14 @@ class RedesignFlowsTest {
 
         val delete = hasText(str(R.string.main_remove_report)) and hasClickAction()
         rule.onAllNodes(hasScrollToIndexAction())[0].performScrollToNode(delete)
-        rule.onNode(delete).performClick()
+        rule.onNode(delete).scrollClearOfChrome().performClick()
         rule.waitForNode(hasText(str(R.string.main_remove_pain_title)))
         tapDialogButton(R.string.main_cancel)
         rule.waitForIdle()
         assertFalse("Cancel deletes nothing", loggedVariants().contains("RemoveReadiness"))
         assertTrue(EventDispatcher.model.value!!.readiness_summary.any { it.signal == ReadinessSignal.Pain })
 
-        rule.onNode(delete).performScrollTo().performClick()
+        rule.onNode(delete).scrollClearOfChrome().performClick()
         tapDialogButton(R.string.main_delete)
         rule.waitForState { EventDispatcher.model.value!!.readiness_summary.none { it.signal == ReadinessSignal.Pain } }
         rule.waitForNode(hasText(str(R.string.main_report_removed)))
@@ -397,7 +398,7 @@ class RedesignFlowsTest {
     private fun openYesterdaysRun(gps: Boolean, title: String = yesterdaysRunTitle) {
         rule.selectTab(str(R.string.main_dest_history))
         rule.scrollToText(title)
-        rule.onAllNodes(hasText(title))[0].performClick()
+        rule.onAllNodes(hasText(title))[0].scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("run-delete"))
         // The route loads off the main thread; Trim appears once it has.
         if (gps) rule.waitForNode(hasTestTag("run-trim"))
@@ -417,7 +418,7 @@ class RedesignFlowsTest {
         rule.onNodeWithTagScrolled("run-log-effort").performClick()
         rule.waitForNode(hasTestTag("run-rate-save"))
         rule.pickRating("effort-scale", 7)
-        rule.onNode(hasTestTag("run-type-Tempo")).performScrollTo().performClick()
+        rule.onNode(hasTestTag("run-type-Tempo")).scrollClearOfChrome().performClick()
         androidx.test.espresso.Espresso.pressBack()
         rule.waitUntil(10_000) { rule.countOf(hasTestTag("run-rate-save")) == 0 }
         assertTrue("a cancelled rating sends nothing", amendMetas().isEmpty())
@@ -429,8 +430,8 @@ class RedesignFlowsTest {
         )
 
         rule.pickRating("effort-scale", 7)
-        rule.onNode(hasTestTag("run-type-Tempo")).performScrollTo().performClick()
-        rule.onNode(hasTestTag("run-rate-save")).performScrollTo().performClick()
+        rule.onNode(hasTestTag("run-type-Tempo")).scrollClearOfChrome().performClick()
+        rule.onNode(hasTestTag("run-rate-save")).scrollClearOfChrome().performClick()
         rule.waitForState { ratedRun().session_rpe == 7 }
         assertEquals(WorkoutType.Tempo, ratedRun().workout_type)
         assertEquals(1, amendMetas().size)
@@ -449,7 +450,7 @@ class RedesignFlowsTest {
         rule.onNode(hasTestTag("effort-scale")).assert(
             SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, str(R.string.rating_unrated)),
         )
-        rule.onNode(hasTestTag("run-rate-save")).performScrollTo().performClick()
+        rule.onNode(hasTestTag("run-rate-save")).scrollClearOfChrome().performClick()
         rule.waitForState { ratedRun().session_rpe == null }
         assertEquals("clearing the effort keeps the type", WorkoutType.Tempo, ratedRun().workout_type)
         rule.onNodeWithTagScrolled("run-log-effort").assert(hasText(str(R.string.run_rate_title), substring = true))
@@ -540,7 +541,7 @@ class RedesignFlowsTest {
         rule.onNodeWithTagScrolled("run-trim").performClick()
         rule.waitForNode(hasText(str(R.string.trim_hint)))
         rule.onAllNodes(trimButton)[0].performScrollTo().assertIsNotEnabled()
-        rule.onNode(hasText(str(R.string.main_cancel)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.main_cancel)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("run-trim"))
         assertFalse(loggedVariants().contains("TrimRunTrack"))
 
@@ -558,13 +559,13 @@ class RedesignFlowsTest {
         rule.onAllNodes(trimButton)[0].performScrollTo().assertIsNotEnabled()
         start.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(span * 0.2f) }
         rule.waitForIdle()
-        rule.onAllNodes(trimButton)[0].performScrollTo().assertIsEnabled().performClick()
+        rule.onAllNodes(trimButton)[0].scrollClearOfChrome().assertIsEnabled().performClick()
         rule.waitForNode(hasText(strPrefix(R.string.main_trim_confirm_title), substring = true))
         tapDialogButton(R.string.main_cancel)
         rule.waitForIdle()
         assertFalse("the confirm's Cancel trims nothing", loggedVariants().contains("TrimRunTrack"))
 
-        rule.onAllNodes(trimButton)[0].performScrollTo().performClick()
+        rule.onAllNodes(trimButton)[0].scrollClearOfChrome().performClick()
         rule.waitForNode(hasText(strPrefix(R.string.main_trim_confirm_title), substring = true))
         tapDialogButton(R.string.main_trim_confirm)
         rule.waitForState { loggedVariants().contains("TrimRunTrack") }
@@ -663,7 +664,7 @@ class RedesignFlowsTest {
     }
 
     private fun androidx.compose.ui.test.junit4.ComposeTestRule.onNodeWithTagScrolled(tag: String) =
-        onNode(hasTestTag(tag)).performScrollTo()
+        onNode(hasTestTag(tag)).scrollClearOfChrome()
 
     private val setProgressKey = androidx.compose.ui.semantics.SemanticsActions.SetProgress
 
@@ -693,7 +694,7 @@ class RedesignFlowsTest {
         QaHarness.seedLog(ctx, listOf(QaHarness.hybridFiveKProfile()))
         rule.launchApp()
         openChooserFromFab("log run")
-        rule.onNode(row(R.string.main_log_run_title)).performScrollTo().performClick()
+        rule.onNode(row(R.string.main_log_run_title)).scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("effort-scale"))
         assertEquals(str(R.string.rating_unrated), trackState("effort-scale"))
         rule.pickRating("effort-scale", 5)
@@ -720,7 +721,7 @@ class RedesignFlowsTest {
         QaHarness.seedLog(ctx, listOf(QaHarness.strengthProfile()))
         rule.launchApp()
         openChooserFromFab("check-in")
-        rule.onNode(row(R.string.main_morning_checkin_title)).performScrollTo().performClick()
+        rule.onNode(row(R.string.main_morning_checkin_title)).scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("checkin-sleep"))
         rule.onNode(hasTestTag("editor-primary")).assertIsNotEnabled()
         // Soreness runs 5→1: the accessibility step 0 is the leftmost value, 5.
@@ -768,7 +769,7 @@ class RedesignFlowsTest {
 
     private fun openWeekly() {
         openChooserFromFab("weekly")
-        rule.onNode(row(R.string.main_weekly_checkin_title)).performScrollTo().performClick()
+        rule.onNode(row(R.string.main_weekly_checkin_title)).scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("weekly-failed"))
     }
 
@@ -800,15 +801,15 @@ class RedesignFlowsTest {
         openWeekly()
         // Something answered, so Save turns on once the bar speed is valid (an
         // emptied bar speed alone answers nothing).
-        rule.onNode(hasText(str(R.string.log_weekly_sign_sleep)) and hasClickAction()).performScrollTo().performClick()
-        rule.onNode(hasText(str(R.string.log_weekly_more_details)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.log_weekly_sign_sleep)) and hasClickAction()).scrollClearOfChrome().performClick()
+        rule.onNode(hasText(str(R.string.log_weekly_more_details)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.onNode(hasClickAction() and hasContentDescription(str(R.string.log_weekly_velocity_drop), substring = true))
-            .performScrollTo().performClick()
+            .scrollClearOfChrome().performClick()
         keypadKey('5')
         rule.onNode(hasTestTag("editor-primary")).assertIsNotEnabled()
         assertEquals("the range is named", 1, rule.countOf(hasText(str(R.string.ui_keypad_range_hint, "0.00", "0.30", str(R.string.log_unit_m_per_s)))))
         rule.onNode(hasClickAction() and hasContentDescription(str(R.string.ui_cd_delete_digit)) and hasAnyAncestor(hasTestTag("numeric-keypad")))
-            .performScrollTo().performClick()
+            .scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.onNode(hasTestTag("editor-primary")).assertIsEnabled()
         rule.tapEditorPrimary()
@@ -846,9 +847,9 @@ class RedesignFlowsTest {
         rule.launchApp()
         openWeekly()
         val sleep = hasText(str(R.string.log_weekly_sign_sleep)) and hasClickAction()
-        rule.onNode(sleep).performScrollTo().performClick()
+        rule.onNode(sleep).scrollClearOfChrome().performClick()
         rule.onNode(hasTestTag("editor-primary")).assertIsEnabled()
-        rule.onNode(sleep).performScrollTo().performClick()
+        rule.onNode(sleep).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.onNode(hasTestTag("editor-primary")).assertIsNotEnabled()
         assertEquals("the explicit all-clear is offered again", 1, rule.countOf(nothingToReport))
@@ -862,19 +863,19 @@ class RedesignFlowsTest {
         QaHarness.seedLog(ctx, listOf(QaHarness.strengthProfile()))
         rule.launchApp()
         openChooserFromFab("review")
-        rule.onNode(row(R.string.log_chooser_more)).performScrollTo().performClick()
-        rule.onNode(row(R.string.main_session_review_title)).performScrollTo().performClick()
+        rule.onNode(row(R.string.log_chooser_more)).scrollClearOfChrome().performClick()
+        rule.onNode(row(R.string.main_session_review_title)).scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("editor-primary"))
         val save = rule.onNode(hasTestTag("editor-primary"))
         save.assertIsNotEnabled()
         val offDay = row(R.string.log_switch_off_day)
-        rule.onNode(offDay).performScrollTo().performClick()
+        rule.onNode(offDay).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         save.assertIsEnabled()
-        rule.onNode(offDay).performScrollTo().performClick()
+        rule.onNode(offDay).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         save.assertIsNotEnabled()
-        rule.onNode(offDay).performScrollTo().performClick()
+        rule.onNode(offDay).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         save.assertIsEnabled()
         save.performClick()
@@ -886,7 +887,7 @@ class RedesignFlowsTest {
     private fun keypadKey(k: Char) {
         rule.onNode(
             hasClickAction() and hasText("$k") and hasAnyAncestor(hasTestTag("numeric-keypad")),
-        ).performScrollTo().performClick()
+        ).scrollClearOfChrome().performClick()
         rule.waitForIdle()
     }
 
@@ -901,7 +902,7 @@ class RedesignFlowsTest {
         rule.selectTab(str(R.string.main_dest_profile))
         val calcRow = hasText(str(R.string.main_tool_hr_title)) and hasClickAction()
         rule.onAllNodes(androidx.compose.ui.test.hasScrollToNodeAction())[0].performScrollToNode(calcRow)
-        rule.onAllNodes(calcRow)[0].performClick()
+        rule.onAllNodes(calcRow)[0].scrollClearOfChrome().performClick()
         rule.waitForNode(hasText(str(R.string.log_btn_compute_hr)) and hasClickAction())
     }
 
@@ -911,7 +912,7 @@ class RedesignFlowsTest {
 
     private fun typeAge(digits: String) {
         rule.onNode(hasClickAction() and hasContentDescription(str(R.string.log_field_age), substring = true))
-            .performScrollTo().performClick()
+            .scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("numeric-keypad"))
         digits.forEach { keypadKey(it) }
     }
@@ -924,15 +925,15 @@ class RedesignFlowsTest {
         rule.waitForNode(calcResult)
         assertEquals("187", headline())
         rule.onNode(hasClickAction() and hasContentDescription(str(R.string.main_calc_clear_subject, str(R.string.main_calc_hr_overline))))
-            .performScrollTo().performClick()
+            .scrollClearOfChrome().performClick()
         rule.assertCountEventually(calcResult, 0)
         assertTrue(loggedVariants().contains("ClearHrZones"))
-        rule.onNode(computeHr).performScrollTo().performClick()
+        rule.onNode(computeHr).scrollClearOfChrome().performClick()
         rule.waitForNode(calcResult)
         assertEquals("187", headline())
         // Tanaka 208 − 0.7 × 40.
         typeAge("40")
-        rule.onNode(computeHr).performScrollTo().performClick()
+        rule.onNode(computeHr).scrollClearOfChrome().performClick()
         rule.waitForState { headline() == "180" }
         assertEquals(1, rule.countOf(calcResult))
         assertEquals(0, rule.countOf(hasTestTag("numeric-keypad")))
@@ -950,12 +951,12 @@ class RedesignFlowsTest {
         }
         repeat(4) {
             rule.onNode(hasClickAction() and hasContentDescription(str(R.string.ui_cd_delete_digit)) and hasAnyAncestor(hasTestTag("numeric-keypad")))
-                .performScrollTo().performClick()
+                .scrollClearOfChrome().performClick()
         }
         rule.waitForIdle()
         rule.onNode(computeHr).performScrollTo().assertIsNotEnabled()
         typeAge("45")
-        rule.onNode(computeHr).performScrollTo().assertIsEnabled().performClick()
+        rule.onNode(computeHr).scrollClearOfChrome().assertIsEnabled().performClick()
         rule.waitForState { headline() == "177" }
         assertFalse("no invalid age was ever sent", journeyLog().any { it.variant == "ComputeHrZones" && it.payload["age_years"].toString().let { a -> a == "4.0" || a == "101.0" || a == "0.0" } })
     }
@@ -964,9 +965,9 @@ class RedesignFlowsTest {
     fun glossary_noMatchThenCleared_andBackClosesOnlyTheGlossary() {
         openHrZones()
         rule.waitForNode(calcResult)
-        rule.onNode(hasContentDescription(str(R.string.main_details_subject, str(R.string.main_calc_hr_overline)))).performScrollTo().performClick()
+        rule.onNode(hasContentDescription(str(R.string.main_details_subject, str(R.string.main_calc_hr_overline)))).scrollClearOfChrome().performClick()
         val hrmax = str(R.string.main_glossary_hrmax_term)
-        rule.onNode(hasContentDescription(str(R.string.main_explain, hrmax)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasContentDescription(str(R.string.main_explain, hrmax)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("glossary-search"))
         val search = rule.onNode(hasTestTag("glossary-search"))
         search.performTextInput("zzqx")
@@ -1012,17 +1013,17 @@ class RedesignFlowsTest {
         rule.waitUntil(10_000) { rule.countOf(hasTestTag("editor-primary")) == 0 }
 
         openChooserFromFab("free set")
-        rule.onNode(row(R.string.main_log_set_title)).performScrollTo().performClick()
+        rule.onNode(row(R.string.main_log_set_title)).scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("exercise-search"))
         assertEquals(0, rule.countOf(hasText(strPrefix(R.string.log_set_header_n_of_n, 1), substring = true)))
         val weight = hasClickAction() and hasContentDescription(str(R.string.log_field_weight), substring = true)
         assertEquals("weight waits for an exercise", 0, rule.countOf(weight))
-        rule.onNode(hasText("Back Squat") and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText("Back Squat") and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitForNode(weight)
         rule.typeWeight("135")
         // Reps may still be unset for a free set: answer them so Save turns on.
         if (rule.countOf(hasTestTag("editor-primary") and androidx.compose.ui.test.isEnabled()) == 0) {
-            rule.onNode(hasText("5") and hasClickAction() and hasAnyAncestor(hasTestTag("reps-scale"))).performScrollTo().performClick()
+            rule.onNode(hasText("5") and hasClickAction() and hasAnyAncestor(hasTestTag("reps-scale"))).scrollClearOfChrome().performClick()
         }
         val before = EventDispatcher.model.value!!.lifts.size
         rule.tapEditorPrimary()
@@ -1076,7 +1077,7 @@ class ReviewSheetsSaveGateTest {
     }
 
     private fun tap(matcher: SemanticsMatcher, index: Int = 0) {
-        rule.onAllNodes(matcher)[index].performScrollTo().performClick()
+        rule.onAllNodes(matcher)[index].scrollClearOfChrome().performClick()
         rule.waitForIdle()
     }
 

@@ -13,7 +13,6 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import app.milestone.LoopRepeatGuardMs
 import app.milestone.Event
@@ -95,10 +94,10 @@ class OwnerRegressionJourneyTest {
         // Yesterday (Sunday) at midday, untagged → titled by its weekday.
         val title = str(R.string.history_run_weekday, "Sunday")
         rule.scrollToText(title)
-        rule.onNodeWithText(title).performClick()
+        rule.onNodeWithText(title).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         // Delete run confirms first (spec §2.7), then lands with "Run deleted · Undo".
-        rule.onNodeWithTag("run-delete").performScrollTo().performClick()
+        rule.onNodeWithTag("run-delete").scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.onNode(hasText(str(R.string.run_delete_message))).assertExists()
         rule.onNode(hasText(str(R.string.main_delete)) and hasClickAction()).performClick()
@@ -122,9 +121,9 @@ class OwnerRegressionJourneyTest {
         assertEquals(restore, 0.0, payload["hr_pct_max"]!!.jsonPrimitive.double, 0.0)
 
         rule.scrollToText(title)
-        rule.onNodeWithText(title).performClick()
+        rule.onNodeWithText(title).scrollClearOfChrome().performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("run-log-details").performScrollTo().performClick()
+        rule.onNodeWithTag("run-log-details").scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.assertCountEventually(
             hasContentDescription("${str(R.string.track_log_hr_avg)}, 152 ${str(R.string.track_log_hr_bpm)}"),
@@ -149,10 +148,10 @@ class OwnerRegressionJourneyTest {
         rule.selectTab(str(R.string.main_dest_history))
         val title = str(R.string.history_run_weekday, "Sunday")
         rule.scrollToText(title)
-        rule.onNodeWithText(title).performClick()
+        rule.onNodeWithText(title).scrollClearOfChrome().performClick()
         // Undo is built from the route, so wait until it has loaded (Trim appears then).
         rule.waitForNode(hasTestTag("run-trim"), 10_000)
-        rule.onNodeWithTag("run-delete").performScrollTo().performClick()
+        rule.onNodeWithTag("run-delete").scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.onNode(hasText(str(R.string.main_delete)) and hasClickAction()).performClick()
         rule.waitForState { EventDispatcher.model.value!!.runs.none { it.entry_id == entryId } }
@@ -213,7 +212,7 @@ class OwnerRegressionJourneyTest {
         rule.tapEditorPrimary()
         rule.assertCountEventually(hasText(setHeader(2, n)), 1)
         nextTapLater()
-        rule.onNode(hasText("1") and hasAnyAncestor(hasTestTag("reps-scale"))).performScrollTo().performClick()
+        rule.onNode(hasText("1") and hasAnyAncestor(hasTestTag("reps-scale"))).scrollClearOfChrome().performClick()
         rule.tapEditorPrimary()
         rule.waitForState { todaysItems().first { it.exercise == squat }.logged_sets.size == 2 }
         val endLabel = str(R.string.log_cue_end_exercise)

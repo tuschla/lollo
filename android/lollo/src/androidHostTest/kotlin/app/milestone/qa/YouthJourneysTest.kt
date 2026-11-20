@@ -11,7 +11,6 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import app.milestone.Event
 import app.milestone.EventDispatcher
@@ -77,20 +76,20 @@ class YouthJourneysTest {
         rule.waitUntilDisplayed(hasText(str(R.string.activity_week_minutes, 0, target)))
 
         rule.scrollTodayTo(hasText(str(R.string.activity_log_action)) and hasClickAction())
-        rule.onNode(hasText(str(R.string.activity_log_action)) and hasClickAction()).performClick()
+        rule.onNode(hasText(str(R.string.activity_log_action)) and hasClickAction()).scrollClearOfChrome().performClick()
         // The editor is open (its title shares the card action's label).
         rule.waitUntilDisplayed(hasText(str(R.string.activity_kind_sport)) and hasClickAction())
         rule.tapText(str(R.string.activity_kind_sport))
         rule.onNode(hasClickAction() and hasContentDescription(str(R.string.activity_field_minutes), substring = true))
-            .performScrollTo().performClick()
+            .scrollClearOfChrome().performClick()
         "45".forEach { c ->
             rule.onNode(
                 hasClickAction() and (hasText("$c") or hasAnyDescendant(hasText("$c"))) and
                     hasAnyAncestor(hasTestTag("numeric-keypad")),
-            ).performScrollTo().performClick()
+            ).scrollClearOfChrome().performClick()
         }
-        rule.onNode(hasText(str(R.string.activity_effort_vigorous)) and hasClickAction()).performScrollTo().performClick()
-        rule.onNode(hasText(str(R.string.activity_strengthening)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.activity_effort_vigorous)) and hasClickAction()).scrollClearOfChrome().performClick()
+        rule.onNode(hasText(str(R.string.activity_strengthening)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.tapEditorPrimary()
 
         // The card counts it at once and lists it with its Remove.
@@ -109,7 +108,7 @@ class YouthJourneysTest {
 
         // The card's next step: the coach summary, through the share sheet.
         rule.scrollTodayTo(hasText(str(R.string.coach_export_action)) and hasClickAction())
-        rule.onNode(hasText(str(R.string.coach_export_action)) and hasClickAction()).performClick()
+        rule.onNode(hasText(str(R.string.coach_export_action)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         val send = sharedIntent(shadowOf(ApplicationProvider.getApplicationContext<Application>()).nextStartedActivity)
         assertEquals(Intent.ACTION_SEND, send.action)

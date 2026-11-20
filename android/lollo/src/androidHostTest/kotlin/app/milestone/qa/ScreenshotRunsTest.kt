@@ -104,7 +104,7 @@ class ScreenshotRunsTest {
             plural(R.plurals.history_set_count, sets, sets)
 
     private fun key(k: String) =
-        rule.onNode(hasText(k) and hasAnyAncestor(hasTestTag("numeric-keypad"))).performScrollTo().performClick()
+        rule.onNode(hasText(k) and hasAnyAncestor(hasTestTag("numeric-keypad"))).scrollClearOfChrome().performClick()
 
     /**
      * History over twelve weeks of runs plus a half marathon five weeks back
@@ -184,13 +184,14 @@ class ScreenshotRunsTest {
         // The progress block switched to the 14-day daily chart.
         val daily = str(R.string.history_progress_days, 14)
         rule.scrollToText(daily)
-        rule.onNodeWithText(daily).performClick()
+        rule.onNodeWithText(daily).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.shot("runs-progress-daily-$s")
         // Records: the carded 2×2 grid, longest run + best efforts down to the half
         // marathon (the best-effort labels are the core's own copy).
         rule.scrollToText(records)
         rule.scrollToText("Half marathon".uppercase(Locale.US))
+        rule.onAllNodes(hasText("Half marathon".uppercase(Locale.US), substring = true))[0].scrollClearOfChrome()
         rule.shot("runs-progress-records-$s")
         // The run list: the first month header (with its jump-to-month calendar
         // button), today's card (weekday title, Effort 7 of 10, the Fastest 10K
@@ -206,7 +207,7 @@ class ScreenshotRunsTest {
     private fun openRatedRunDetail() {
         seedRunsHistory()
         rule.scrollToText("Fastest 10K")
-        rule.onAllNodesWithText("Fastest 10K").onFirst().performClick()
+        rule.onAllNodesWithText("Fastest 10K").onFirst().scrollClearOfChrome().performClick()
         // Rated: YOUR LOG's Effort row reads "7 of 10 · Very hard".
         rule.waitForText(str(R.string.run_effort_value, 7, str(R.string.history_effort_anchor_7)))
         // The GPS route parses off the main thread (Trim appears once it has); wait
@@ -226,7 +227,7 @@ class ScreenshotRunsTest {
         rule.shot("runs-detail-rated-splits-$s")
         // The training-load "?" opened inside the YOUR LOG card.
         val trainingLoad = hasContentDescription(str(R.string.history_training_load_subject), substring = true) and hasClickAction()
-        rule.onNode(trainingLoad).performScrollTo().performClick()
+        rule.onNode(trainingLoad).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.shot("runs-detail-rated-why-$s")
         rule.onNode(trainingLoad).performClick()
@@ -241,7 +242,7 @@ class ScreenshotRunsTest {
         rule.onNode(hasText(str(R.string.main_cancel)) and hasClickAction()).performClick()
         rule.waitForIdle()
         // Rate run: the effort scale (7 picked) and the run type chips over the sheet.
-        rule.onNodeWithTag("run-log-effort").performScrollTo().performClick()
+        rule.onNodeWithTag("run-log-effort").scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.shot("runs-detail-rate-sheet-$s")
     }
@@ -266,7 +267,7 @@ class ScreenshotRunsTest {
         // The newest hand-logged run (Saturday, unrated, untagged).
         val saturdayRun = str(R.string.history_run_weekday, "Saturday")
         rule.scrollToText(saturdayRun)
-        rule.onAllNodesWithText(saturdayRun).onFirst().performClick()
+        rule.onAllNodesWithText(saturdayRun).onFirst().scrollClearOfChrome().performClick()
         rule.waitForNodeSettled(hasTestTag("run-log-details"))
         rule.shot("runs-detail-rate-${mode.suffix}")
     }
@@ -288,7 +289,7 @@ class ScreenshotRunsTest {
         rule.shot("runs-lifts-sheet-top-$s")
         // A set opened from the table: the set as the sheet's largest figure, its
         // e1RM / load card, the cross-check and the Edit set / Delete set rows.
-        rule.onAllNodes(hasTestTag("lift-set-row")).onFirst().performScrollTo().performClick()
+        rule.onAllNodes(hasTestTag("lift-set-row")).onFirst().scrollClearOfChrome().performClick()
         rule.waitForNodeSettled(hasTestTag("set-detail-delete"))
         rule.shot("runs-lifts-set-detail-$s")
     }
@@ -302,16 +303,16 @@ class ScreenshotRunsTest {
         QaHarness.seedLog(ctx, listOf(QaHarness.fiveKRunnerProfile()))
         rule.launchApp()
         rule.openLogChooser()
-        rule.onNodeWithText(str(R.string.main_log_run_title)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.main_log_run_title)).scrollClearOfChrome().performClick()
         rule.waitForNodeSettled(hasContentDescription(str(R.string.log_field_duration)))
         val s = mode.suffix
         // Distance 6.2 mi, duration typed timer-style: 1:05:30.
         listOf("6", ".", "2").forEach { key(it) }
-        rule.onNode(hasContentDescription(str(R.string.log_field_duration))).performScrollTo().performClick()
+        rule.onNode(hasContentDescription(str(R.string.log_field_duration))).scrollClearOfChrome().performClick()
         listOf("1", "0", "5", "3", "0").forEach { key(it) }
         rule.shot("runs-editor-top-$s")
         // Average heart rate (bpm offered first, age known): 152 typed.
-        rule.onNode(hasContentDescription(str(R.string.track_log_hr_avg))).performScrollTo().performClick()
+        rule.onNode(hasContentDescription(str(R.string.track_log_hr_avg))).scrollClearOfChrome().performClick()
         listOf("1", "5", "2").forEach { key(it) }
         rule.shot("runs-editor-mid-$s")
         // Whole-run effort 6 picked, run-type chips below.
@@ -329,7 +330,7 @@ class ScreenshotRunsTest {
         QaHarness.seedLog(ctx, listOf(QaHarness.fiveKRunnerProfile()))
         rule.launchApp()
         rule.openLogChooser()
-        rule.onNodeWithText(str(R.string.main_track_run_title)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.main_track_run_title)).scrollClearOfChrome().performClick()
         rule.waitForText(str(R.string.track_plan_follow))
         rule.waitForText(strPrefix(R.string.track_plan_title), substring = true)
         rule.shot("track-prestart-${mode.suffix}")
@@ -356,7 +357,7 @@ class ScreenshotRunsTest {
         rule.shot("track-finish-$s")
         // The plan-preselected Interval changed to Recovery (local state only), with
         // the action row pinned to the panel's bottom edge.
-        rule.onNodeWithText("Recovery").performScrollTo().performClick()
+        rule.onNodeWithText("Recovery").scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.shot("track-finish-bottom-$s")
     }

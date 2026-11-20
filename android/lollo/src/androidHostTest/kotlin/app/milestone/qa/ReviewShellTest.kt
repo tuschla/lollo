@@ -26,7 +26,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.onLast
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.text.Paragraph
@@ -172,7 +171,7 @@ class ReviewShellTest {
         }
         rule.onAllNodes(
             hasClickAction() and logSet and androidx.compose.ui.test.hasAnyAncestor(hasTestTag("plan-item:${first.exercise}")),
-        )[0].performScrollTo().performClick()
+        )[0].scrollClearOfChrome().performClick()
         rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("editor-primary")).fetchSemanticsNodes().isNotEmpty() }
         rule.onNode(hasTestTag("editor-primary")).performClick()
         val prefix = strPrefix(R.string.log_undo_logged) + " "
@@ -266,7 +265,7 @@ class ReviewShellTest {
         rule.onNode(hasText(str(R.string.main_dest_profile)) and hasClickAction()).performClick()
         rule.waitForIdle()
         rule.onAllNodes(hasScrollToNodeAction())[0].performScrollToNode(calcRow)
-        rule.onAllNodes(calcRow)[0].performClick()
+        rule.onAllNodes(calcRow)[0].scrollClearOfChrome().performClick()
         rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("calc-result")).fetchSemanticsNodes().isNotEmpty() }
         rule.waitForIdle()
         val bands = EventDispatcher.model.value!!.hr_zone_bands.map { it.name }.toSet()
@@ -332,9 +331,9 @@ class ReviewShellTest {
         rule.onNode(logFab).performClick()
         val title = str(R.string.main_weekly_checkin_title)
         rule.waitUntil(10_000) { rule.onAllNodes(hasText(title) and hasClickAction()).fetchSemanticsNodes().isNotEmpty() }
-        rule.onNode(hasText(title) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(title) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("editor-primary")).fetchSemanticsNodes().isNotEmpty() }
-        rule.onNode(hasText(str(R.string.log_weekly_more_details)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.log_weekly_more_details)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         val problems = mutableListOf<String>()
         problems += screenWordSplits()
@@ -610,7 +609,7 @@ class ReviewShellComponentTest {
     /** Open the sheet's date picker, pick the day whose label contains [day] (or
      *  leave the selection as is), and confirm. */
     private fun confirmDate(day: String? = null) {
-        rule.onNode(hasText(str(R.string.log_today), substring = true) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.log_today), substring = true) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         if (day != null) rule.onNode(hasText(day, substring = true) and hasClickAction()).performClick()
         rule.onNode(hasText(str(R.string.log_ok)) and hasClickAction()).performClick()

@@ -273,7 +273,7 @@ class LongHistoryUiTest {
         historyList().performScrollToNode(hasTestTag("history-record"))
         val longestRow = hasTestTag("history-record") and hasText(str(R.string.history_longest_run), substring = true, ignoreCase = true)
         timed("open longest run") {
-            rule.onNode(longestRow).performClick()
+            rule.onNode(longestRow).scrollClearOfChrome().performClick()
             rule.waitUntil(15_000) { rule.onAllNodesWithTag("run-trim").fetchSemanticsNodes().isNotEmpty() }
         }
         val run = model().runs.first { it.entry_id == h.longestRun.entryId }
@@ -305,7 +305,7 @@ class LongHistoryUiTest {
         rule.waitForIdle()
 
         timed("open trim") {
-            rule.onNodeWithTag("run-trim").performScrollTo().performClick()
+            rule.onNodeWithTag("run-trim").scrollClearOfChrome().performClick()
             rule.waitUntil(15_000) { rule.onAllNodes(hasText(str(R.string.trim_hint))).fetchSemanticsNodes().isNotEmpty() }
         }
         sheetChecks("trim sheet")
@@ -318,7 +318,7 @@ class LongHistoryUiTest {
         rule.waitForIdle()
         // The readout now names what goes (no longer the whole-track hint).
         rule.onAllNodes(hasText(str(R.string.trim_hint))).fetchSemanticsNodes().let { assertTrue("the start thumb moved: ${dump()}", it.isEmpty()) }
-        rule.onNode(hasText(str(R.string.main_trim_confirm)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.main_trim_confirm)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         // The confirm dialog's own Trim: its message ends with a sentence the sheet's readout lacks.
         val confirmTail = str(R.string.main_trim_confirm_message, "", "\u0000").substringAfter('\u0000')
@@ -438,7 +438,7 @@ class LongHistoryUiTest {
             val row = hasText(str(tool)) and hasClickAction()
             screenList().performScrollToNode(row)
             timed("open ${str(tool)}") {
-                rule.onNode(row).performClick()
+                rule.onNode(row).scrollClearOfChrome().performClick()
                 rule.waitUntil(10_000) { rule.onAllNodes(isRoot()).fetchSemanticsNodes().size >= 2 }
             }
             scrollSheetChecking(str(tool))
@@ -447,7 +447,7 @@ class LongHistoryUiTest {
         val refs = hasText(str(R.string.main_evidence_references_title)) and hasClickAction()
         screenList().performScrollToNode(refs)
         timed("open references") {
-            rule.onNode(refs).performClick()
+            rule.onNode(refs).scrollClearOfChrome().performClick()
             rule.waitUntil(10_000) { rule.onAllNodes(isRoot()).fetchSemanticsNodes().size >= 2 }
         }
         scrollSheetChecking("references")
@@ -495,12 +495,12 @@ class LongHistoryUiTest {
         historyList().performScrollToIndex(0)
         rule.waitForIdle()
         historyList().performScrollToNode(hasTestTag("history-record"))
-        rule.onNode(hasTestTag("history-record") and hasText(str(R.string.history_longest_run), substring = true, ignoreCase = true)).performClick()
+        rule.onNode(hasTestTag("history-record") and hasText(str(R.string.history_longest_run), substring = true, ignoreCase = true)).scrollClearOfChrome().performClick()
         rule.waitUntil(15_000) { rule.onAllNodesWithTag("run-trim").fetchSemanticsNodes().isNotEmpty() }
         val run = m.runs.first { it.entry_id == h.longestRun.entryId }
         assertEquals("21.25 mi = 21 full miles + the partial", 22, run.splits.size)
         val showAll = hasText(str(R.string.run_splits_show_all, run.splits.size)) and hasClickAction()
-        rule.onNode(showAll).performScrollTo().performClick()
+        rule.onNode(showAll).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         assertEquals(run.splits.size, splitRows().size)
         assertTrue(splitRows().all { "per mile" in it })
@@ -730,7 +730,7 @@ class LongHistoryUiTest {
         historyList().performScrollToIndex(0)
         rule.waitForIdle()
         historyList().performScrollToNode(hasTestTag("history-jump-to-month"))
-        rule.onNodeWithTag("history-jump-to-month").performClick()
+        rule.onNodeWithTag("history-jump-to-month").scrollClearOfChrome().performClick()
         rule.waitForIdle()
         val options = rule.onAllNodes(hasClickAction() and SemanticsMatcher("a month option") { n ->
             n.config.getOrNull(SemanticsProperties.Text).orEmpty().any { MONTH_OPTION.matches(it.text) }
@@ -739,7 +739,7 @@ class LongHistoryUiTest {
         val option = hasClickAction() and hasText(month)
         historyList().performScrollToNode(option)
         timed("jump to $month") {
-            rule.onNode(option).performClick()
+            rule.onNode(option).scrollClearOfChrome().performClick()
             rule.waitForIdle()
         }
     }

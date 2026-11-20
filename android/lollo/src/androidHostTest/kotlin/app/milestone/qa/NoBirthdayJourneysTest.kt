@@ -87,7 +87,7 @@ class NoBirthdayJourneysTest {
 
         rule.openProfileAnswersAt(profileRow(ageLabel))
         rule.onNode(profileRow(ageLabel) and hasText(str(R.string.setup_age_not_given))).assertIsDisplayed()
-        rule.onNode(profileRow(ageLabel)).performClick()
+        rule.onNode(profileRow(ageLabel)).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.onNode(skipChip()).performScrollTo().assertIsSelected()
         rule.assertCountEventually(hasText(str(R.string.setup_birthday_skipped_note)), 1)
@@ -110,10 +110,10 @@ class NoBirthdayJourneysTest {
         rule.launchApp()
         rule.waitForState { EventDispatcher.model.value?.next_session != null }
         rule.openProfileAnswersAt(profileRow(ageLabel))
-        rule.onNode(profileRow(ageLabel)).performClick()
+        rule.onNode(profileRow(ageLabel)).scrollClearOfChrome().performClick()
         rule.waitForIdle()
 
-        rule.onNode(skipChip()).performScrollTo().assertIsNotSelected().performClick()
+        rule.onNode(skipChip()).scrollClearOfChrome().assertIsNotSelected().performClick()
         rule.waitForState { EventDispatcher.model.value?.profile?.let { it.birth_epoch_day == null && it.age_years == null } == true }
         val payload = lastProfilePayload()
         assertFalse(payload.containsKey("age_years"))

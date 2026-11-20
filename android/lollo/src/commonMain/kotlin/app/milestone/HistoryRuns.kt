@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,10 +25,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.milestone.resources.Res
 import app.milestone.resources.history_best_effort_open
@@ -238,7 +243,9 @@ internal fun RunProgressSection(
  * hairline cross. Each cell names the record, states its figure in the user's
  * distance [unit] and the day it was set (the day its run STARTED, [recordDaySec]),
  * and opens the run holding it ([onOpenRun], resolved in [runs]).
- * An odd last cell spans both columns. Always open (it is compact).
+ * An odd last cell spans both columns. One column instead while a word of a cell
+ * would not fit a half-width cell (a narrow window or a large font), so no name
+ * breaks inside a word. Always open (it is compact).
  */
 @Composable
 internal fun RunRecordsSection(
@@ -271,12 +278,18 @@ internal fun RunRecordsSection(
     Column(verticalArrangement = Arrangement.spacedBy(Space.Md.dp)) {
         SectionOverline(stringResource(Res.string.history_records))
         PlainCard(contentPadding = PaddingValues(0.dp), spacing = 0.dp) {
-            cells.chunked(2).forEachIndexed { row, pair ->
-                if (row > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Hairline))
-                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                    pair.forEachIndexed { col, cell ->
-                        if (col > 0) Box(Modifier.width(1.dp).fillMaxHeight().background(Hairline))
-                        RecordGridCell(cell, Modifier.weight(1f)) { cell.run?.let(onOpenRun) }
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val half = (maxWidth - 1.dp) / 2 - Space.Card.dp * 2
+                val perRow = if (recordWordsFit(cells, half)) 2 else 1
+                Column {
+                    cells.chunked(perRow).forEachIndexed { row, pair ->
+                        if (row > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Hairline))
+                        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                            pair.forEachIndexed { col, cell ->
+                                if (col > 0) Box(Modifier.width(1.dp).fillMaxHeight().background(Hairline))
+                                RecordGridCell(cell, Modifier.weight(1f)) { cell.run?.let(onOpenRun) }
+                            }
+                        }
                     }
                 }
             }
@@ -296,6 +309,21 @@ private data class RecordCell(
  *  record's own logged stamp [observedAt] when the run is not listed. */
 internal fun recordDaySec(run: RunResultView?, observedAt: Long): Long = run?.let(::runDaySec) ?: observedAt
 
+/** Text styles of a [RecordGridCell]'s figure and date. */
+private val RecordValueStyle = Type.Title.merge(TabularFigures)
+private val RecordDateStyle = Type.Caption.merge(TabularFigures)
+
+/** Whether every word of every [cells] label, figure and date fits on one line
+ *  [room] wide, measured in the style its [RecordGridCell] renders it. */
+@Composable
+private fun recordWordsFit(cells: List<RecordCell>, room: Dp): Boolean {
+    val measurer = rememberTextMeasurer()
+    val roomPx = with(LocalDensity.current) { room.toPx() }
+    fun fits(text: String, style: TextStyle) =
+        text.split(' ').all { measurer.measure(it, style, maxLines = 1, softWrap = false).size.width <= roomPx }
+    return cells.all { fits(it.label.uppercase(), Type.Overline) && fits(it.value, RecordValueStyle) && fits(it.date, RecordDateStyle) }
+}
+
 @Composable
 private fun RecordGridCell(cell: RecordCell, modifier: Modifier, onClick: () -> Unit) {
     Column(
@@ -312,9 +340,9 @@ private fun RecordGridCell(cell: RecordCell, modifier: Modifier, onClick: () -> 
         verticalArrangement = Arrangement.spacedBy(Space.Xs.dp),
     ) {
         TileOverline(cell.label)
-        Text(cell.value, color = OnBgBody, style = Type.Title.merge(TabularFigures))
+        Text(cell.value, color = OnBgBody, style = RecordValueStyle)
         if (cell.date.isNotBlank()) {
-            Text(cell.date, color = OnBgMuted, style = Type.Caption.merge(TabularFigures))
+            Text(cell.date, color = OnBgMuted, style = RecordDateStyle)
         }
     }
 }

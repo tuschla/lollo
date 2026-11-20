@@ -89,7 +89,7 @@ class RunFinishEffortTest {
     fun finishReview_effort7_saveSendsLogRunTrackWithSessionRpe7() {
         openFinishReview()
         rule.pickRating("effort-scale", 7)
-        rule.onNodeWithText(str(R.string.run_type_interval)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.run_type_interval)).scrollClearOfChrome().performClick()
         val saved = rule.saveRunAndAwait()
         assertEquals(7, saved["session_rpe"]?.jsonPrimitive?.int)
         assertEquals("Interval", saved["workout_type"]?.jsonPrimitive?.content)

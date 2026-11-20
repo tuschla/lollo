@@ -9,7 +9,6 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import app.milestone.AppSettings
 import app.milestone.AppTheme
@@ -64,7 +63,7 @@ class ScreenshotRouteThemesTest(private val theme: AppTheme, private val mode: D
         rule.selectTab(str(R.string.main_dest_history))
         val title = str(R.string.history_run_weekday, "Sunday")
         rule.scrollToText(title)
-        rule.onNodeWithText(title).performClick()
+        rule.onNodeWithText(title).scrollClearOfChrome().performClick()
         rule.waitForNodeSettled(hasTestTag("run-trim"))
         val name = "route-${theme.name.lowercase()}"
         val s = mode.suffix
@@ -74,7 +73,7 @@ class ScreenshotRouteThemesTest(private val theme: AppTheme, private val mode: D
         rule.shot("$name-full-$s")
         rule.onNode(hasContentDescription(str(R.string.runmap_close)) and hasClickAction()).performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("run-trim").performScrollTo().performClick()
+        rule.onNodeWithTag("run-trim").scrollClearOfChrome().performClick()
         rule.waitForNodeSettled(hasText(str(R.string.trim_hint)))
         rule.shot("$name-trim-$s")
     }

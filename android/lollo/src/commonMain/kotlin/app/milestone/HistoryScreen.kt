@@ -475,11 +475,13 @@ internal fun HistoryDestination(
             },
         )
     } else {
+        // The floating bar lies over the list's foot: the last card scrolls clear of it.
+        val chromeInset = LocalBottomChromeInset.current
         ReadableWidth { gutter ->
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = gutter, vertical = Space.Screen.dp),
+                contentPadding = PaddingValues(start = gutter, end = gutter, top = Space.Screen.dp, bottom = Space.Screen.dp + chromeInset),
                 verticalArrangement = spacing,
             ) {
                 listSections.forEach { section(it) }

@@ -282,7 +282,7 @@ class RestoreRoundtripTest {
         rule.launchOnTracker()
         rule.stopToFinishReview()
         rule.pickRating("effort-scale", 7)
-        rule.onNodeWithText(str(R.string.run_type_interval)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.run_type_interval)).scrollClearOfChrome().performClick()
         val effort = ratingState("effort-scale")
 
         recreate()
@@ -330,7 +330,7 @@ class RestoreRoundtripTest {
         assertEquals("no run doubled", 2, model.runs.size)
 
         // Rate it: pick 6, rotate with the rate sheet open, then save.
-        rule.onNodeWithTag("run-log-effort").performScrollTo().performClick()
+        rule.onNodeWithTag("run-log-effort").scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("run-rate-save"))
         rule.pickRating("effort-scale", 6)
         val picked = ratingState("effort-scale")
@@ -375,7 +375,7 @@ class RestoreRoundtripTest {
         val last = run.points.last().observedAt
         openRunDetail(run)
         val beforeKm = model.runs.single { it.entry_id == run.entryId }.distance_km
-        rule.onNodeWithTag("run-trim").performScrollTo().performClick()
+        rule.onNodeWithTag("run-trim").scrollClearOfChrome().performClick()
         rule.waitUntil(15_000) { trimThumbs().fetchSemanticsNodes().size == 2 }
 
         setThumb(0, 300f)
@@ -393,7 +393,7 @@ class RestoreRoundtripTest {
         val message = hasText(str(R.string.main_trim_confirm_message, "", "\u0000").substringAfter('\u0000'), substring = true)
         val confirmInDialog = hasText(str(R.string.main_trim_confirm)) and hasClickAction() and
             hasAnyAncestor(isDialog() and androidx.compose.ui.test.hasAnyDescendant(message))
-        rule.onNode(hasText(str(R.string.main_trim_confirm)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.main_trim_confirm)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitUntil(5_000) { rule.countOf(message) == 1 }
         recreate()
         rule.waitUntil(15_000) { rule.countOf(message) == 1 && rule.countOf(confirmInDialog) == 1 }
@@ -501,16 +501,16 @@ class RestoreRoundtripTest {
         rule.selectTab(str(R.string.main_dest_profile))
         val row = hasText(str(R.string.main_tool_protein_title)) and hasClickAction()
         rule.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(row)
-        rule.onAllNodes(row).onFirst().performClick()
+        rule.onAllNodes(row).onFirst().scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("calc-result"))
         val first = model.protein_figures.single()
 
         rule.onNode(hasClickAction() and hasContentDescription(str(R.string.log_field_bodyweight), substring = true))
-            .performScrollTo().performClick()
+            .scrollClearOfChrome().performClick()
         for (k in "95") {
-            rule.onNode(hasText("$k") and hasClickAction() and hasAnyAncestor(hasTestTag("numeric-keypad"))).performScrollTo().performClick()
+            rule.onNode(hasText("$k") and hasClickAction() and hasAnyAncestor(hasTestTag("numeric-keypad"))).scrollClearOfChrome().performClick()
         }
-        rule.onNode(hasText(str(R.string.log_btn_compute_protein)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.log_btn_compute_protein)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitForState { model.protein_input?.bodyweight_kg == 95.0 }
         val second = model.protein_figures.single()
         assertTrue("the answer moved with the weight", second.high_g_per_day > first.high_g_per_day)
@@ -538,7 +538,7 @@ class RestoreRoundtripTest {
 
     private fun tapProfileOption(m: SemanticsMatcher) {
         rule.onAllNodes(hasScrollToNodeAction())[0].performScrollToNode(m)
-        rule.onAllNodes(m).onFirst().performClick()
+        rule.onAllNodes(m).onFirst().scrollClearOfChrome().performClick()
         rule.waitForIdle()
     }
 

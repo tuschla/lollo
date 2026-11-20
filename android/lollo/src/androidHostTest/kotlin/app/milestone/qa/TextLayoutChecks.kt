@@ -27,17 +27,18 @@ fun ComposeTestRule.textProblems(typed: Collection<String> = emptyList()): List<
     val out = ArrayList<String>()
     val d = density.density
     val slack = 2f * d
-    // Floating layers ride over the scrolling list by design: the "Log" button
-    // (the list's end clearance is RedesignFlowsTest's gate) and a snackbar
-    // (its host is the node with a dismiss action), so text under them is not
-    // an overlap.
+    // Floating layers ride over the scrolling list by design: the floating nav bar
+    // and its Log button (the lists' end clearance is FloatingNavBarTest's gate)
+    // and a snackbar (its host is the node with a dismiss action), so text under
+    // them is not an overlap.
     val logLabel = str(R.string.main_log)
     val floating = onAllNodes(isRoot()).fetchSemanticsNodes().firstOrNull()?.let { r ->
         flatten(r).filter { n ->
             (
                 n.config.getOrNull(SemanticsActions.OnClick) != null &&
                     n.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty().any { it == logLabel }
-                ) || n.config.getOrNull(SemanticsActions.Dismiss) != null
+                ) || n.config.getOrNull(SemanticsActions.Dismiss) != null ||
+                n.config.getOrNull(SemanticsProperties.TestTag) == "nav-pill"
         }.map { it.boundsInRoot }
     }.orEmpty()
     val yearOption = libraryString("m3c_date_picker_navigate_to_year_description")?.substringBefore("%")?.trim()

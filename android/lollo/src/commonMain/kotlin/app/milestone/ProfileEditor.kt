@@ -896,8 +896,9 @@ private fun ProfileKeypadEditor(
     val editorRequester = remember { BringIntoViewRequester() }
     val fieldRequester = remember { BringIntoViewRequester() }
     val editorTop = remember { WindowTop() }
+    val foot = LocalRevealViewport.current.obscured
     LaunchedEffect(text) {
-        if (touched) revealWhenSettled(editorTop, editorRequester, fieldRequester)
+        if (touched) revealWhenSettled(editorTop, editorRequester, fieldRequester, foot = foot)
     }
     Column(
         modifier = Modifier
@@ -969,11 +970,11 @@ private fun ProfileRow(
     LaunchedEffect(expanded, revealRequest) {
         val onExpand = expanded && revealOnExpand
         if (onExpand && revealContent) {
-            revealWhenSettled(rowTop, requester, contentRequester)
+            revealWhenSettled(rowTop, requester, contentRequester, foot = landIn.obscured)
         } else if (revealRequest) {
             revealWhenSettled(rowTop, requester, landIn = landIn)
         } else if (onExpand) {
-            revealWhenSettled(rowTop, requester)
+            revealWhenSettled(rowTop, requester, foot = landIn.obscured)
         }
         if (revealRequest) onRevealed()
     }

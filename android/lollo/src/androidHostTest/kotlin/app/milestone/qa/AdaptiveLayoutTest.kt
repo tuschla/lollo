@@ -836,7 +836,7 @@ class AdaptiveLayoutTest {
         window(PHONE_LANDSCAPE_AFTER_BARS)
         rule.launchAppExpectingSetup()
         GuidedSetupWalk.walk(rule, stopAt = "race")
-        rule.onNode(hasText(str(R.string.setup_date_pick)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.setup_date_pick)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitUntil(10_000) { rule.onAllNodes(isDialog()).fetchSemanticsNodes().isNotEmpty() }
         rule.waitForIdle()
         val inDialog = rule.onAllNodes(hasAnyAncestor(isDialog()) and (hasClickAction() or hasSetTextAction())).fetchSemanticsNodes()
@@ -856,7 +856,7 @@ class AdaptiveLayoutTest {
         window(PHONE_LANDSCAPE_AFTER_BARS)
         rule.launchAppExpectingSetup()
         GuidedSetupWalk.walk(rule, stopAt = "race")
-        rule.onNode(hasText(str(R.string.setup_date_pick)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.setup_date_pick)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitUntil(10_000) { rule.onAllNodes(isDialog()).fetchSemanticsNodes().isNotEmpty() }
         rule.waitForIdle()
         val dialog = checkNotNull(ShadowDialog.getLatestDialog()) { "no dialog window" }

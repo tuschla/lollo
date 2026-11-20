@@ -54,7 +54,7 @@ class RunEditorHrEffortTest {
     }
 
     private fun key(k: String) =
-        rule.onNode(hasText(k) and hasAnyAncestor(hasTestTag("numeric-keypad"))).performScrollTo().performClick()
+        rule.onNode(hasText(k) and hasAnyAncestor(hasTestTag("numeric-keypad"))).scrollClearOfChrome().performClick()
 
     /** [hrMaxKnown]: the core's [ViewModel.hr_max_known] (an age or a measured max). */
     private fun show(
@@ -83,13 +83,13 @@ class RunEditorHrEffortTest {
         var sent: Event? = null
         show(hrMaxKnown = true) { sent = it }
         key("5")
-        rule.onNode(hasContentDescription(str(R.string.log_field_duration))).performScrollTo().performClick()
+        rule.onNode(hasContentDescription(str(R.string.log_field_duration))).scrollClearOfChrome().performClick()
         listOf("3", "0", "0", "0").forEach { key(it) }
         // One "Average heart rate" field, always shown (empty = not recorded); a
         // known age lets the core convert bpm, so bpm is offered first and the unit
         // in the field header is the swap to % of max (no extra row).
         assertEquals(1, rule.onAllNodes(hasContentDescription(str(R.string.log_hr_use_pct))).fetchSemanticsNodes().size)
-        rule.onNode(hasContentDescription(str(R.string.track_log_hr_avg))).performScrollTo().performClick()
+        rule.onNode(hasContentDescription(str(R.string.track_log_hr_avg))).scrollClearOfChrome().performClick()
         listOf("1", "5", "2").forEach { key(it) }
         rule.pickRating("effort-scale", 6)
         // The pinned primary sits below the scrolling form, always on screen.
@@ -125,7 +125,7 @@ class RunEditorHrEffortTest {
         var sent: Event? = null
         show(hrMaxKnown = true) { sent = it }
         key("5")
-        rule.onNode(hasContentDescription(str(R.string.log_field_duration))).performScrollTo().performClick()
+        rule.onNode(hasContentDescription(str(R.string.log_field_duration))).scrollClearOfChrome().performClick()
         listOf("3", "0", "0", "0").forEach { key(it) }
         rule.tapEditorPrimary()
         rule.waitForIdle()
@@ -146,7 +146,7 @@ class RunEditorHrEffortTest {
         var sent: Event? = null
         show(hrMaxKnown = true, initialObservedAt = observedAt) { sent = it }
         key("5")
-        rule.onNode(hasContentDescription(str(R.string.log_field_duration))).performScrollTo().performClick()
+        rule.onNode(hasContentDescription(str(R.string.log_field_duration))).scrollClearOfChrome().performClick()
         listOf("3", "0", "0", "0").forEach { key(it) }
         rule.tapEditorPrimary()
         rule.waitForIdle()
@@ -169,7 +169,7 @@ class RunEditorHrEffortTest {
         rule.onNode(
             hasContentDescription("${str(R.string.track_log_hr_avg)}, 152 ${str(R.string.track_log_hr_bpm)}"),
         ).performScrollTo()
-        rule.onNode(hasContentDescription("${str(R.string.log_field_distance)}, ", substring = true)).performScrollTo().performClick()
+        rule.onNode(hasContentDescription("${str(R.string.log_field_distance)}, ", substring = true)).scrollClearOfChrome().performClick()
         key("6")
         rule.tapEditorPrimary()
         rule.waitForIdle()
@@ -193,7 +193,7 @@ class RunEditorHrEffortTest {
         rule.onNode(
             hasContentDescription("${str(R.string.track_log_hr_avg)}, 78 ${str(R.string.log_hr_pct_max)}"),
         ).performScrollTo()
-        rule.onNode(hasContentDescription("${str(R.string.log_field_distance)}, ", substring = true)).performScrollTo().performClick()
+        rule.onNode(hasContentDescription("${str(R.string.log_field_distance)}, ", substring = true)).scrollClearOfChrome().performClick()
         key("6")
         rule.tapEditorPrimary()
         rule.waitForIdle()
@@ -207,7 +207,7 @@ class RunEditorHrEffortTest {
     fun systemBack_foldsTheKeypadBeforeAskingToDiscard() {
         val logged = RunResultView(entry_id = 9L, observed_at = 1_700_000_000L, distance_km = 8.0, duration_min = 45.0)
         show(hrMaxKnown = true, initial = logged) {}
-        rule.onNode(hasContentDescription("${str(R.string.log_field_distance)}, ", substring = true)).performScrollTo().performClick()
+        rule.onNode(hasContentDescription("${str(R.string.log_field_distance)}, ", substring = true)).scrollClearOfChrome().performClick()
         key("6")
         val keypad = hasTestTag("numeric-keypad")
         val discard = str(R.string.log_discard_title)
@@ -222,7 +222,7 @@ class RunEditorHrEffortTest {
         assertEquals("the next Back asks to discard the edit", 1, rule.onAllNodesWithText(discard).fetchSemanticsNodes().size)
 
         rule.onNodeWithText(str(R.string.log_keep_editing)).performClick()
-        rule.onNode(hasContentDescription("${str(R.string.log_field_distance)}, ", substring = true)).performScrollTo().performClick()
+        rule.onNode(hasContentDescription("${str(R.string.log_field_distance)}, ", substring = true)).scrollClearOfChrome().performClick()
         assertEquals("tapping a field opens the keypad again", 1, rule.onAllNodes(keypad).fetchSemanticsNodes().size)
     }
 }

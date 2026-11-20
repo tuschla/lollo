@@ -13,7 +13,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollToNode
@@ -82,7 +81,7 @@ class CalculatorResultsTest {
         rule.selectTab(str(R.string.main_dest_profile))
         val row = hasText(str(titleRes)) and hasClickAction()
         rule.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(row)
-        rule.onAllNodes(row).onFirst().performClick()
+        rule.onAllNodes(row).onFirst().scrollClearOfChrome().performClick()
         rule.waitUntil(10_000) { rule.onAllNodes(result).fetchSemanticsNodes().isNotEmpty() }
         rule.waitForIdle()
     }
@@ -184,10 +183,10 @@ class CalculatorResultsTest {
         openCalculator(R.string.main_tool_hr_title)
         assertEquals(0, rule.onAllNodes(keypad).fetchSemanticsNodes().size)
         rule.onNode(hasClickAction() and hasContentDescription(str(R.string.log_field_age), substring = true))
-            .performScrollTo().performClick()
+            .scrollClearOfChrome().performClick()
         rule.waitForIdle()
         assertEquals(1, rule.onAllNodes(keypad).fetchSemanticsNodes().size)
-        rule.onNode(hasText(str(R.string.log_keypad_done)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.log_keypad_done)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         assertEquals(0, rule.onAllNodes(keypad).fetchSemanticsNodes().size)
     }
@@ -198,7 +197,7 @@ class CalculatorResultsTest {
         rule.onNode(hasContentDescription(str(R.string.main_details_subject, str(R.string.main_calc_hr_overline)))).performClick()
         rule.waitForIdle()
         val hrmax = str(R.string.main_glossary_hrmax_term)
-        rule.onNode(hasContentDescription(str(R.string.main_explain, hrmax)) and hasClickAction()).performScrollTo().performClick()
+        rule.onNode(hasContentDescription(str(R.string.main_explain, hrmax)) and hasClickAction()).scrollClearOfChrome().performClick()
         rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("glossary-search")).fetchSemanticsNodes().isNotEmpty() }
         rule.waitForIdle()
         rule.shot("sheet-glossary-light")
@@ -219,7 +218,7 @@ class CalculatorResultsTest {
         rule.selectTab(str(R.string.main_dest_profile))
         val row = hasText(str(R.string.main_evidence_references_title)) and hasClickAction()
         rule.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(row)
-        rule.onAllNodes(row).onFirst().performClick()
+        rule.onAllNodes(row).onFirst().scrollClearOfChrome().performClick()
         rule.waitUntil(10_000) {
             rule.onAllNodes(hasText(str(R.string.main_evidence_references_body))).fetchSemanticsNodes().isNotEmpty()
         }

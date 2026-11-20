@@ -244,7 +244,7 @@ class OwnerProfileJourneysTest {
         assertTrue(!EventDispatcher.model.value!!.train_blocked)
         val age = str(R.string.setup_row_age)
         rule.openProfileAnswersAt(profileRow(age))
-        rule.onNode(profileRow(age)).performClick()
+        rule.onNode(profileRow(age)).scrollClearOfChrome().performClick()
         rule.waitForIdle()
 
         val change = str(R.string.setup_birthday_change)

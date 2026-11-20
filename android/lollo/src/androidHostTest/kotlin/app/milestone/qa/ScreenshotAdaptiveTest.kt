@@ -121,7 +121,7 @@ class ScreenshotAdaptiveTest(private val window: Window, private val variant: Va
         rule.waitForText(strPrefix(R.string.plan_face_per_side), substring = true)
         shot("today")
         rule.onNode(hasClickAction() and hasContentDescription(str(R.string.main_move_session), substring = true))
-            .performScrollTo().performClick()
+            .scrollClearOfChrome().performClick()
         rule.waitForNode(SemanticsMatcher("testTag starts with move-target:") {
             it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("move-target:") == true
         })
@@ -154,7 +154,7 @@ class ScreenshotAdaptiveTest(private val window: Window, private val variant: Va
         rule.waitForNode(hasTestTag("numeric-keypad"))
         rule.waitForIdle()
         shot("setloop-keypad")
-        rule.onNode(hasClickAction() and hasText(str(R.string.log_keypad_done))).performScrollTo().performClick()
+        rule.onNode(hasClickAction() and hasText(str(R.string.log_keypad_done))).scrollClearOfChrome().performClick()
         rule.waitForIdle()
         rule.tapEditorPrimary()
         rule.waitForText(strPrefix(R.string.log_set_header_n_of_n, 2), substring = true)
@@ -172,7 +172,7 @@ class ScreenshotAdaptiveTest(private val window: Window, private val variant: Va
         rule.launchApp()
         rule.openLogChooser()
         shot("log-chooser")
-        rule.onNodeWithText(str(R.string.main_log_run_title)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.main_log_run_title)).scrollClearOfChrome().performClick()
         rule.waitForNode(hasContentDescription(str(R.string.log_field_duration)))
         rule.waitForIdle()
         shot("log-run-editor")
@@ -183,11 +183,11 @@ class ScreenshotAdaptiveTest(private val window: Window, private val variant: Va
         rule.openRunsHistory(ctx, halfMarathon = false)
         shot("history-runs")
         rule.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(hasText("Fastest 10K"))
-        rule.onAllNodesWithText("Fastest 10K").onFirst().performClick()
+        rule.onAllNodesWithText("Fastest 10K").onFirst().scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("run-trim"))
         rule.waitForIdle()
         shot("history-run-detail")
-        rule.onNodeWithTag("run-trim").performScrollTo().performClick()
+        rule.onNodeWithTag("run-trim").scrollClearOfChrome().performClick()
         rule.waitUntil(10_000) {
             rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress)).fetchSemanticsNodes().isNotEmpty()
         }
@@ -243,12 +243,12 @@ class ScreenshotAdaptiveTest(private val window: Window, private val variant: Va
         shot("profile")
         val row = hasText(str(R.string.main_tool_hr_title)) and hasClickAction()
         rule.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(row)
-        rule.onAllNodes(row).onFirst().performClick()
+        rule.onAllNodes(row).onFirst().scrollClearOfChrome().performClick()
         rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("calc-result")).fetchSemanticsNodes().isNotEmpty() }
         rule.waitForIdle()
         shot("calc-hr-zones")
         rule.onNode(hasClickAction() and hasContentDescription(str(R.string.log_field_age), substring = true))
-            .performScrollTo().performClick()
+            .scrollClearOfChrome().performClick()
         rule.waitForNode(hasTestTag("numeric-keypad"))
         rule.waitForIdle()
         shot("calc-hr-zones-keypad")
@@ -261,7 +261,7 @@ class ScreenshotAdaptiveTest(private val window: Window, private val variant: Va
         rule.selectTab(str(R.string.main_dest_profile))
         val row = hasText(str(R.string.main_evidence_references_title)) and hasClickAction()
         rule.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(row)
-        rule.onAllNodes(row).onFirst().performClick()
+        rule.onAllNodes(row).onFirst().scrollClearOfChrome().performClick()
         rule.waitForText(str(R.string.main_evidence_references_body))
         shot("evidence-references")
     }
@@ -286,7 +286,7 @@ class ScreenshotAdaptiveTest(private val window: Window, private val variant: Va
         QaHarness.seedLog(ctx, listOf(QaHarness.fiveKRunnerProfile()))
         rule.launchApp()
         rule.openLogChooser()
-        rule.onNodeWithText(str(R.string.main_track_run_title)).performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.main_track_run_title)).scrollClearOfChrome().performClick()
         rule.waitForText(str(R.string.track_plan_follow))
         shot("track-prestart")
     }

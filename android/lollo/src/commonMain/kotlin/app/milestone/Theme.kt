@@ -41,8 +41,9 @@ val DangerText: Color @Composable get() = LocalPalette.current.dangerText
 /** The active theme's [Palette.onAccent]: text and icons on the [Accent] fill. */
 internal val OnAccent: Color @Composable get() = LocalPalette.current.onAccent
 
-/** The active theme's [accentTint]: the one soft accent tint (selected nav pill,
- *  leading icon tiles, [SecondaryButton] fill, selected [OptionList] row). */
+/** The active theme's [accentTint]: the one soft accent tint (the nav rail's
+ *  selected item, leading icon tiles, [SecondaryButton] fill, selected
+ *  [OptionList] row). */
 val AccentTint: Color @Composable get() = LocalPalette.current.accentTint()
 
 val AccentFaint: Color @Composable get() = LocalPalette.current.accentFaint()
@@ -247,6 +248,15 @@ val StatusRingWidth = 1.5.dp
 /** Accent bar along the start edge of a list card whose entry is open in the
  *  detail pane beside the list ([PlainCard] `selected`). */
 val SelectedBarWidth = Space.Sm.dp
+
+/** Shadow of the floating navigation bar and its Log button: Material's resting
+ *  FAB elevation. With the run tracker's stat sheet the only shadows in the app;
+ *  every other surface is flat. */
+val FloatingShadow = 6.dp
+
+/** Opacity of the ground band behind the system's 3-button navigation bar, so its
+ *  buttons never sit on a card's text (the floating bar, MainActivity's scrim). */
+const val NavScrimAlpha = 0.9f
 
 /**
  * App theme. [appTheme] supplies the whole decorative palette (ground, surface,

@@ -16,7 +16,6 @@ import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import app.milestone.ActiveRunStore
 import app.milestone.AppSettings
@@ -191,7 +190,7 @@ class RunFixGuardsTest {
         assertFalse("QC left no route", model.runs.single().has_gpx)
         HistoryFocus.request(run.entryId, run.observedAt)
         rule.waitForNode(hasTestTag("run-delete"))
-        rule.onNodeWithTag("run-delete").performScrollTo().performClick()
+        rule.onNodeWithTag("run-delete").scrollClearOfChrome().performClick()
         val confirm = hasText(str(R.string.main_delete)) and hasClickAction() and hasAnyAncestor(isDialog())
         rule.waitForNode(confirm)
         rule.onNode(confirm).performClick()

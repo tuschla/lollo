@@ -97,7 +97,9 @@ class AccessibilityAuditTest : UiProbeTest() {
     @Test
     fun hybridAthlete_font1_light_ltr() = audit(Start.Hybrid, Config(1f, dark = false, rtl = false), depth = 1)
 
-    /** Paper with the system accent is a fresh install's default. */
+    /** Paper with the system accent is a fresh install's default. Also the floating
+     *  bar's selected-tab pill against the bar on every tab: a graphical object that
+     *  carries the selection, so at least 3:1 (WCAG 1.4.11). */
     @Test
     fun renderedTextContrast_everyTheme() {
         config = Config(1f, dark = false, rtl = false)
@@ -116,6 +118,7 @@ class AccessibilityAuditTest : UiProbeTest() {
                 while (true) {
                     where = "$tab p$page"
                     auditContrast(label)
+                    if (page == 0) auditNavIndicator(label)
                     if (page + 1 >= MAX_PAGES || !scrollMainBy(page + 1)) break
                     page++
                 }
@@ -791,11 +794,12 @@ class AccessibilityAuditTest : UiProbeTest() {
         val rtl = config.rtl
         val slack = 4f * rule.density.density
         // Floating layers ride over the list and are read after it (Scaffold order):
-        // the Log button and a snackbar (its host: a live region with a dismiss
-        // action). No place in a linear order is "visual" for a layer with list rows
-        // both above and below it; a snackbar announces itself as a live region.
+        // the floating bar with its Log button, and a snackbar (its host: a live
+        // region with a dismiss action). No place in a linear order is "visual" for a
+        // layer with list rows both above and below it; a snackbar announces itself
+        // as a live region.
         fun floating(n: SemanticsNode) = generateSequence(n) { it.parent }.any {
-            it.config.getOrNull(SemanticsProperties.TestTag) == "log-fab" ||
+            it.config.getOrNull(SemanticsProperties.TestTag) in FLOATING_TAGS ||
                 (it.config.getOrNull(SemanticsActions.Dismiss) != null && it.config.contains(SemanticsProperties.LiveRegion))
         }
         val dial = materialTimeDial
@@ -841,6 +845,11 @@ class AccessibilityAuditTest : UiProbeTest() {
         roots().singleOrNull()?.takeIf { shownWindows().size == 1 }?.let { r ->
             val offset = r.positionOnScreen
             val unmerged = allUnmerged(r)
+            // The floating bar's pill and Log button: list text under them is not
+            // readable here, it is sampled on the next page, which shows it above the bar.
+            val floatingParts = unmerged.filter { it.placedVisible() && it.config.getOrNull(SemanticsProperties.TestTag) in FLOATING_TAGS }
+            val floatingRects = floatingParts.map { it.boundsInRoot.translate(offset) }
+            fun inBar(n: SemanticsNode) = generateSequence(n) { it.parent }.any { p -> floatingParts.any { it.id == p.id } }
             for (n in unmerged) {
                 if (!n.placedVisible()) continue
                 if (generateSequence(n) { it.parent }.any { it.config.contains(SemanticsProperties.Disabled) }) continue
@@ -866,6 +875,7 @@ class AccessibilityAuditTest : UiProbeTest() {
                     if (t < clip.top - 1f || b > clip.bottom + 1f) continue
                     val box = Rect(clip.left, max(t, clip.top), clip.right, min(b, clip.bottom))
                     if (box.width < 4f || box.height < 4f) continue
+                    if (!inBar(n) && floatingRects.any { box.overlaps(it) }) continue
                     val ratio = lineContrast(bmp, box) ?: continue
                     if (ratio.first + 0.05 < need) {
                         val lineText = text.substring(layout.getLineStart(line), layout.getLineEnd(line)).trim()
@@ -877,6 +887,35 @@ class AccessibilityAuditTest : UiProbeTest() {
                     }
                 }
             }
+        }
+    }
+
+    /** The floating bar's selected tab: its solid pill against the bar's ground, at
+     *  least 3:1 (WCAG 1.4.11, the selection is carried by it). The pill is sampled
+     *  in the tab's side padding, the bar's ground in the bar's inset above the tabs. */
+    private fun auditNavIndicator(label: String) {
+        if (roots().size != 1) return
+        val r = roots().single()
+        val offset = r.positionOnScreen
+        val unmerged = allUnmerged(r)
+        val bar = unmerged.firstOrNull { it.placedVisible() && it.config.getOrNull(SemanticsProperties.TestTag) == "nav-pill" } ?: return
+        val tab = flatten(bar).firstOrNull { it.config.getOrNull(SemanticsProperties.Role) == Role.Tab && it.config.getOrNull(SemanticsProperties.Selected) == true }
+        if (tab == null) {
+            report("nav-indicator", "the floating bar shows no selected tab in $label")
+            return
+        }
+        val bmp = screenBitmap() ?: return
+        val d = rule.density.density
+        val t = tab.boundsInRoot.translate(offset)
+        val b = bar.boundsInRoot.translate(offset)
+        val indicator = bmp.getPixel((t.left + 2 * d).toInt(), t.center.y.toInt())
+        val ground = bmp.getPixel(b.center.x.toInt(), (b.top + 2.5f * d).toInt())
+        val ratio = contrastRatio(Color(indicator), Color(ground))
+        if (ratio + 0.05 < 3.0) {
+            report(
+                "nav-indicator",
+                "selected tab \"${labelOf(tab)}\" ${"%.2f".format(ratio)}:1 < 3 (#${Integer.toHexString(indicator).takeLast(6)} on #${Integer.toHexString(ground).takeLast(6)}) in $label",
+            )
         }
     }
 
@@ -938,6 +977,8 @@ class AccessibilityAuditTest : UiProbeTest() {
         private const val MAX_PAGES = 12
         private const val MAX_OVERLAY_PAGES = 3
         private const val BRAND = "lollo"
+        /** The floating bar's pill and its Log button (the rail's Log shares the tag). */
+        private val FLOATING_TAGS = setOf("nav-pill", "log-fab")
 
         /** Real time an opening or closing overlay window may take to settle. */
         private const val OVERLAY_SETTLE_MS = 5_000L

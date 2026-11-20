@@ -210,7 +210,7 @@ class TodayCoachingTest {
     }
 
     @Test
-    fun skipExercise_undoMessageSitsAboveTheLogFab() {
+    fun skipExercise_undoMessageSitsAboveTheFloatingBar() {
         QaHarness.seedLog(ctx, listOf(QaHarness.strengthProfile()))
         rule.launchApp()
         rule.assertCountEventually(hasText(str(R.string.main_todays_session).uppercase(Locale.US)), 1)
@@ -218,8 +218,8 @@ class TodayCoachingTest {
         rule.onAllNodesWithText(str(R.string.plan_skip_exercise))[0].performClick()
         rule.assertCountEventually(hasText(str(R.string.plan_skipped_msg, first.exercise)), 1)
         val shown = rule.onNode(hasText(str(R.string.plan_skipped_msg, first.exercise))).getBoundsInRoot()
-        val fab = rule.onNode(logFab).getBoundsInRoot()
-        assertTrue("the message ($shown) sits above the Log FAB ($fab)", shown.bottom <= fab.top)
+        val barTop = rule.floatingBarTop()
+        assertTrue("the message ($shown) sits above the floating bar and Log (top $barTop px)", with(rule.density) { shown.bottom.toPx() } <= barTop)
     }
 
     @Test
@@ -236,7 +236,7 @@ class TodayCoachingTest {
     }
 
     @Test
-    fun todayLastRow_scrollsClearOfTheLogFab() {
+    fun todayLastRow_scrollsClearOfTheFloatingBar() {
         QaHarness.seedLog(
             ctx,
             listOf(QaHarness.strengthProfile()) + listOf(6, 4, 2).map { QaHarness.loggedSquat(QaHarness.daysAgoAtMidday(it)) },
@@ -246,8 +246,8 @@ class TodayCoachingTest {
         rule.scrollTodayToEnd()
         val list = rule.onAllNodes(hasScrollToIndexAction())[0]
         val lastBottom = list.fetchSemanticsNode().children.maxOf { it.boundsInRoot.bottom }
-        val fabTop = with(rule.density) { rule.onNode(logFab).getBoundsInRoot().top.toPx() }
-        assertTrue("the last row ($lastBottom px) ends above the Log FAB ($fabTop px)", lastBottom <= fabTop + 1f)
+        val barTop = rule.floatingBarTop()
+        assertTrue("the last row ($lastBottom px) ends above the floating bar and Log ($barTop px)", lastBottom <= barTop + 1f)
     }
 
     @Test

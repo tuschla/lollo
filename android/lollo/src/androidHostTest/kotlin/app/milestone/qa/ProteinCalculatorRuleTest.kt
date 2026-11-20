@@ -71,7 +71,7 @@ class ProteinCalculatorRuleTest {
         rule.onNode(hasText(str(R.string.log_protein_deficit_only, mastersAgeLabel()))).assertExists()
         computeButton().assertIsNotEnabled()
 
-        rule.onNode(hasText(str(R.string.log_switch_deficit))).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.log_switch_deficit))).scrollClearOfChrome().performClick()
         computeButton().assertIsEnabled().performClick()
         val json = (sent.single() as Event.ComputeProtein).toJson().toString()
         assertTrue(json, json.contains("\"masters\":false") && json.contains("\"deficit\":true"))
@@ -84,7 +84,7 @@ class ProteinCalculatorRuleTest {
             model(age = 40.0, mastersOffered = false, input = ProteinInputView(bodyweight_kg = 80.0, masters = true)),
         ) { sent += it }
         computeButton().assertIsNotEnabled()
-        rule.onNode(hasText(str(R.string.log_switch_deficit))).performScrollTo().performClick()
+        rule.onNode(hasText(str(R.string.log_switch_deficit))).scrollClearOfChrome().performClick()
         computeButton().performClick()
         val json = (sent.single() as Event.ComputeProtein).toJson().toString()
         assertTrue(json, json.contains("\"masters\":false"))

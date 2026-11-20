@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
                 val dark = LocalPalette.current.isDark
                 SideEffect {
                     window.setBackgroundDrawable(ColorDrawable(bgTop.toArgb()))
-                    val navScrim = bgTop.copy(alpha = NAV_SCRIM_ALPHA).toArgb()
+                    val navScrim = bgTop.copy(alpha = NavScrimAlpha).toArgb()
                     enableEdgeToEdge(
                         statusBarStyle = SystemBarStyle.auto(
                             android.graphics.Color.TRANSPARENT,
@@ -113,9 +113,8 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        // Theme-ground alpha for the nav-bar scrim, and the dark scrim androidx's
-        // default enableEdgeToEdge() uses where light icons are the only option.
-        private const val NAV_SCRIM_ALPHA = 0.9f
+        // The dark scrim androidx's default enableEdgeToEdge() uses where light
+        // icons are the only option.
         private val NAV_SCRIM_DARK = android.graphics.Color.argb(0x80, 0x1b, 0x1b, 0x1b)
     }
 }
