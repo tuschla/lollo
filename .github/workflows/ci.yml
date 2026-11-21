@@ -3,6 +3,9 @@ name: CI
 on:
   push:
     branches: [main]
+    # scripts/release.sh's version bump: its parent passed this workflow, and
+    # release.yml builds, checks and publishes the release itself.
+    paths-ignore: ["app-version.xcconfig"]
   pull_request:
   # The emulator smoke and the full-length test modes are expensive, so they run
   # only on demand and weekly, never on every push/PR.

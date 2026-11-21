@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.test.fail
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -31,9 +32,9 @@ class RunSaveCriticalSectionTest : PlatformTest() {
      * clear + session reset, sequenced inside the same `NonCancellable` block, must
      * BOTH run so a rotation can't strand an already-persisted run. The
      * cancellation must NOT be routed to the failure path (that is the double-log
-     * bug); it re-throws instead. The `finish` navigation is best-effort (its
-     * `NonCancellable` block may be skipped once the caller is cancelled), which is
-     * harmless because `resetSession` already emptied the session.
+     * bug); it re-throws instead. The `finish` navigation is best-effort, see
+     * [assertCancelledSaveOutcome], which is harmless because `resetSession` already
+     * emptied the session.
      */
     @Test
     fun cancellationMidSendCompletesPersistAndTeardownAndNeverTakesFailurePath() = runTest {
@@ -70,11 +71,10 @@ class RunSaveCriticalSectionTest : PlatformTest() {
         releaseSend.complete(Unit) // the non-cancellable JNI send returns
         job.join()
 
-        assertEquals(listOf("send", "clear", "reset"), order, "persist + teardown all ran, in order")
         // The regression itself: a cancellation must NEVER be treated as a failed
         // save (that re-shows Save/Discard for a logged run → duplicate / phantom).
         assertFalse(failureCalled, "cancellation is not a save failure")
-        assertTrue(propagated is CancellationException, "cancellation re-thrown, not swallowed: $propagated")
+        assertCancelledSaveOutcome(order, propagated)
     }
 
     /**
@@ -126,23 +126,51 @@ class RunSaveCriticalSectionTest : PlatformTest() {
      * launch it with [CoroutineStart.ATOMIC] right after claiming the save, so a
      * rotation in that window still runs the body, on an already-cancelled job. The
      * persist and the teardown (whose reset releases the claim) must run anyway, and
-     * the cancellation is no save failure; `finish` is best-effort-skipped.
+     * the cancellation is no save failure; `finish` is best-effort, see
+     * [assertCancelledSaveOutcome].
      */
     @Test
     fun aSaveEnteredFromAnAlreadyCancelledScopeStillPersistsAndTearsDown() = runTest {
         val order = mutableListOf<String>()
+        var propagated: Throwable? = null
         val scope = CoroutineScope(Job() + Dispatchers.Default)
         scope.cancel()
         val job = scope.launch(start = CoroutineStart.ATOMIC) {
-            runSaveCriticalSection(
-                send = { order.add("send") },
-                clearSidecar = { order.add("clear") },
-                resetSession = { order.add("reset") },
-                finish = { order.add("finish") },
-                onFailure = { order.add("failure") },
-            )
+            try {
+                runSaveCriticalSection(
+                    send = { order.add("send") },
+                    clearSidecar = { order.add("clear") },
+                    resetSession = { order.add("reset") },
+                    finish = { order.add("finish") },
+                    onFailure = { order.add("failure") },
+                )
+            } catch (t: Throwable) {
+                propagated = t
+                throw t
+            }
         }
         job.join()
-        assertEquals(listOf("send", "clear", "reset"), order, "persist + teardown ran, in order")
+        assertCancelledSaveOutcome(order, propagated)
+    }
+
+    /**
+     * The two ways a save whose caller was cancelled can end. Persist and teardown
+     * always run, in order. Then either the save's IO block returns into the
+     * cancelled caller through a dispatch, which throws the cancellation (re-thrown
+     * here) and skips `finish`; or the block finished before the caller suspended
+     * on it, so `withContext` hands its result back on the spot with no cancellation
+     * check, and the save goes on to run `finish` and return normally. The second
+     * is a rare thread race: nothing is swallowed, the function just
+     * never saw the cancellation. Anything else (the failure path, a missing or
+     * reordered step, another exception, a skipped `finish` without the
+     * cancellation) fails.
+     */
+    private fun assertCancelledSaveOutcome(order: List<String>, propagated: Throwable?) {
+        when (propagated) {
+            is CancellationException ->
+                assertEquals(listOf("send", "clear", "reset"), order, "persist + teardown ran, in order; finish skipped")
+            null -> assertEquals(listOf("send", "clear", "reset", "finish"), order, "save never saw the cancel: all four ran, in order")
+            else -> fail("only the cancellation may leave the save: $propagated")
+        }
     }
 }

@@ -6,6 +6,8 @@ name: iOS core
 # The repo is public, so the macOS job costs no minutes.
 on:
   push:
+    # Branches only: a release tag's commit already passed on main.
+    branches: ["**"]
     paths: &paths
       - "shared/**"
       - "Cargo.toml"
