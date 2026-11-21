@@ -261,9 +261,10 @@ private val ResultAnswerRoom = 168.dp
 /**
  * Body of the Coach calculator [ModalBottomSheet]: a title, the tool's FORM, then
  * its one [CalculatorResultCard]. The forms' keypad shows only
- * while a field is active: tapping a well opens it; the primary action, Back, a
- * tap on the sheet's bare ground or any other control folds it, so a sheet opens
- * with its result card in view. Computing scrolls the result into view.
+ * while a field is active: tapping a well opens it; the primary action, Back
+ * (while the keypad is on screen, [KeypadPanel]), a tap on the sheet's bare
+ * ground or any other control folds it, so a sheet opens with its result card in
+ * view. Computing scrolls the result into view.
  */
 @Composable
 internal fun CoachToolSheet(
@@ -275,7 +276,6 @@ internal fun CoachToolSheet(
     val weightUnit = model.weightUnit()
     val scroll = rememberScrollState()
     var keypadOpen by rememberSaveable(tool) { mutableStateOf(false) }
-    BackHandler(enabled = keypadOpen) { keypadOpen = false }
     // Content-space Y of the result (0 until it first lays out); computing
     // scrolls to it.
     var resultsTop by remember { mutableStateOf(0) }
@@ -702,7 +702,7 @@ fun RacePredictorForm(
                 onKeypad(false)
             }
         }
-        KeypadPanel(keypadOpen) {
+        KeypadPanel(keypadOpen, onBack = { onKeypad(false) }) {
             NumericKeypad(
                 buffer(),
                 fresh,
@@ -904,7 +904,7 @@ fun ProteinForm(
                 style = Type.Caption,
             )
         }
-        KeypadPanel(keypadOpen) {
+        KeypadPanel(keypadOpen, onBack = { onKeypad(false) }) {
             NumericKeypad(bwText, fresh, { bwText = it; fresh = false; untouchedSinceOpen = false }, onDone = { onKeypad(false) })
         }
         PrimaryButton(
@@ -980,7 +980,7 @@ fun HrZonesForm(
                 onKeypad(false)
             }
         }
-        KeypadPanel(keypadOpen) {
+        KeypadPanel(keypadOpen, onBack = { onKeypad(false) }) {
             NumericKeypad(ageText, fresh, { ageText = it; fresh = false }, allowDecimal = false, onDone = { onKeypad(false) })
         }
         PrimaryButton(

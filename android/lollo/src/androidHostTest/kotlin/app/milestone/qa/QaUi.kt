@@ -201,12 +201,12 @@ fun ComposeTestRule.openLoopFor(exercise: String, set: Int = 1) {
 
 fun setHeader(k: Int, n: Int) = str(R.string.log_set_header_n_of_n, k, n)
 
-/** Today's Log button (in the floating bar, or the rail's header), which opens the
- *  log chooser. */
+/** The Log button (in the floating bar, or the rail's header), which opens the log
+ *  chooser. */
 val logFab: SemanticsMatcher get() = hasClickAction() and hasContentDescription(str(R.string.main_log))
 
-/** What floats over the foot of a destination: the navigation pill and, on Today,
- *  the Log button beside or above it. */
+/** What floats over the foot of a destination: the navigation pill and the Log
+ *  button beside or above it. */
 val floatingChrome: SemanticsMatcher get() = hasTestTag("nav-pill") or logFab
 
 /** Bounds of every [floatingChrome] node. */

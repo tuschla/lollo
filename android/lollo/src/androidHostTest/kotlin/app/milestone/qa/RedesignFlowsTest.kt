@@ -50,7 +50,7 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Interaction tests that try to break the redesigned surfaces over the REAL
- * core: the Today-only Log button from every Today
+ * core: the Log button from every Today
  * state, the StatusCard / banner actions, the run detail sheet's rate / trim /
  * delete / export rows, every RatingScale editor, the calculators, the glossary,
  * the Log set editor and the weekly check-in's Save gate. Every assertion is on

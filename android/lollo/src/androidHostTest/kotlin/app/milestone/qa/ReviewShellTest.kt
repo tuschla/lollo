@@ -132,8 +132,8 @@ class ReviewShellTest {
     fun heroTitle_rtl_actionsSitAtTheEnd() {
         QaHarness.seedStrengthHistory(ctx)
         rule.launchApp()
-        // Control: the app really is RTL: the configuration says so and the Scaffold's
-        // end-positioned "+ Log" FAB sits on the left half.
+        // Control: the app really is RTL: the configuration says so and the Log
+        // button, after the centered pill in reading order, sits on the left half.
         var dir = -1
         lastScenario!!.onActivity { dir = it.resources.configuration.layoutDirection }
         val fab = rule.onNode(logFab).fetchSemanticsNode().boundsInRoot

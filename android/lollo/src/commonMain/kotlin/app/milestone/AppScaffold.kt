@@ -26,7 +26,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -220,14 +219,13 @@ private fun CoachScaffoldBody(session: CoachSession) {
     // definitions of jargon, NOT KB training claims.
     var glossaryTerm by rememberSaveable { mutableStateOf<String?>(null) }
 
-    // Today's scroll position, hoisted so the bar's Log button drops its "Log" text
-    // once the list leaves the top.
+    // Today's scroll position, hoisted so finishing a session can return Today to
+    // its top.
     val todayListState = rememberLazyListState()
-    val logExpanded by remember { derivedStateOf { todayListState.firstVisibleItemIndex == 0 } }
     val scope = rememberCoroutineScope()
 
-    // The Today Log button. Reopening always resets to the chooser so the sheet
-    // never reappears mid-editor.
+    // The Log button, on every destination. Reopening always resets to the chooser
+    // so the sheet never reappears mid-editor.
     val openLog: () -> Unit = { openSheet(LogMode.Chooser) }
 
     // The bottom bar's measured height: the top chrome keeps the app bar off it.
@@ -249,7 +247,7 @@ private fun CoachScaffoldBody(session: CoachSession) {
             MilestoneNavRail(
                 selected,
                 onSelect = { selected = it },
-                onLog = if (selected == Dest.Today) openLog else null,
+                onLog = openLog,
                 showBrand = windowLayout.shortHeight,
             )
         }
@@ -303,14 +301,13 @@ private fun CoachScaffoldBody(session: CoachSession) {
                     if (liveTracking && !session.showTracker) {
                         RunInProgressChip { session.showTracker = true }
                     }
-                    // The Log button belongs to Today only (chrome §1). With the rail,
-                    // Log is the rail's header instead.
+                    // The bar and its Log button; with the rail, Log is the rail's
+                    // header instead.
                     if (!navRail) {
                         FloatingNavBar(
                             selected,
                             onSelect = { selected = it },
-                            onLog = if (selected == Dest.Today) openLog else null,
-                            logExpanded = logExpanded,
+                            onLog = openLog,
                             modifier = Modifier.onSizeChanged { navBarPx = it.height },
                         )
                     }
@@ -431,10 +428,16 @@ private fun CoachScaffoldBody(session: CoachSession) {
                             planPrefill = planPrefill,
                             onPlanPrefill = { sheetPlanExercise = it },
                             planObservedAt = planObservedAt,
-                            // Finishing a session lands on Today's top, where its done state is.
+                            // Finishing a session returns Today to its top, where its
+                            // done state is: on Today with a scroll, under another
+                            // destination (the sheet opened there) for its next visit.
                             onFinishSession = {
                                 dismissSheet()
-                                scope.launch { todayListState.animateScrollToItem(0) }
+                                if (selected == Dest.Today) {
+                                    scope.launch { todayListState.animateScrollToItem(0) }
+                                } else {
+                                    todayListState.requestScrollToItem(0)
+                                }
                             },
                         )
                     }

@@ -29,6 +29,7 @@ import app.milestone.SessionStatus
 import app.milestone.planDateLabel
 import java.util.Locale
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -222,8 +223,9 @@ class TodayCoachingTest {
         assertTrue("the message ($shown) sits above the floating bar and Log (top $barTop px)", with(rule.density) { shown.bottom.toPx() } <= barTop)
     }
 
+    /** Owner 2026-11-21: Log on every destination (it was Today's only). */
     @Test
-    fun logFab_isOnTodayOnly() {
+    fun logButton_isOnEveryDestination() {
         QaHarness.seedLog(ctx, listOf(QaHarness.strengthProfile(), QaHarness.loggedSquat(QaHarness.daysAgoAtMidday(7))))
         rule.launchApp()
         rule.assertCountEventually(hasText(str(R.string.main_todays_session).uppercase(Locale.US)), 1)
@@ -231,7 +233,7 @@ class TodayCoachingTest {
         for (tab in listOf(R.string.main_dest_history, R.string.main_dest_profile)) {
             rule.selectTab(str(tab))
             rule.waitForIdle()
-            assertTrue("no Log entry on ${str(tab)}", rule.onAllNodes(logFab).fetchSemanticsNodes().isEmpty())
+            assertEquals("one Log button on ${str(tab)}", 1, rule.onAllNodes(logFab).fetchSemanticsNodes().size)
         }
     }
 

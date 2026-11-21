@@ -209,7 +209,6 @@ fun LogActivityEditor(
             }
         },
     ) {
-        BackHandler(enabled = keypadOpen) { keypadOpen = false }
         FormCard {
             ActivityKindField(kind) { picked ->
                 kind = picked
@@ -231,7 +230,7 @@ fun LogActivityEditor(
                 },
                 hintColor = if (minutesText.isNotEmpty() && !minutesValid) DangerText else OnBgMuted,
             )
-            KeypadPanel(keypadOpen) {
+            KeypadPanel(keypadOpen, onBack = { keypadOpen = false }) {
                 NumericKeypad(minutesText, fresh, { minutesText = it; fresh = false; dirty = true }, allowDecimal = false)
             }
             ActivityEffortField(vigorous) { vigorous = it; dirty = true }

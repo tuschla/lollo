@@ -47,9 +47,9 @@ import org.robolectric.annotation.Config
  * text is cut off (ellipsis, height clip, an unwrapped line wider than its box),
  * no two actions overlap, every action keeps a 48dp target, every action of the
  * screen can be brought into view (and is not left under the floating bar or its
- * Log button), and the three tabs stay whole and switch destinations. Today's Log
- * button is the 56dp disc once the list scrolls, and Today's last row always
- * scrolls clear of the bar.
+ * Log button), and the three tabs stay whole and switch destinations. The Log
+ * button is the 56dp disc, and Today's last row always scrolls clear of the
+ * bar.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w320dp-h640dp-xhdpi")
@@ -278,7 +278,7 @@ class SmallScreenLargeFontTest {
         rule.scrollTodayToEnd()
         assertClean("today end")
         val disc = logWidthDp()
-        assertEquals("the Log button is the 56dp disc once scrolled (${disc}dp)", 56f, disc, 1.5f)
+        assertEquals("the Log button is the 56dp disc (${disc}dp)", 56f, disc, 1.5f)
         val listNode = rule.onAllNodes(hasScrollToIndexAction())[0].fetchSemanticsNode()
         val lastBottom = listNode.children.map { it.boundsInRoot }.filter { it.height > 0f }.maxOf { it.bottom }
         val barTop = rule.floatingBarTop()

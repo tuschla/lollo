@@ -1,6 +1,8 @@
 package app.milestone
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -44,6 +47,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -54,12 +58,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -125,15 +128,22 @@ fun BrandTopBar() {
 internal val LocalBottomChromeInset = compositionLocalOf { 0.dp }
 
 /** Size of the selected tab's icon in the [FloatingNavBar] (chrome §1). */
-private val NavIconSize = 24.dp
+internal val NavIconSize = 24.dp
+
+/** Space between the selected tab's icon and its label. */
+internal val NavIconGap = Space.Md.dp
 
 /** Size of the "+" in the bar's Log button. */
 private val LogIconSize = 20.dp
 
+/** Space between the pill and the Log button, beside or above it: Photos leaves
+ *  0.14 of the bar's height between its pill and its round button, 8dp of 56dp. */
+private val NavGroupGap = Space.Md.dp
+
 /** Space between the pill's edge and its tabs: a 48dp tab in a 56dp pill. */
 private val NavPillInset = Space.Sm.dp
 
-/** A tab's side padding around its label: the comfortable value, and the least
+/** A tab's side padding around its content: the comfortable value, and the least
  *  a narrow window or a large font may squeeze it to. */
 private val NavTabPadding = Space.Screen.dp
 private val NavTabMinPadding = Space.Sm.dp
@@ -143,62 +153,65 @@ private val NavTabMinPadding = Space.Sm.dp
  *
  * [tabPadding]: the side padding of every tab. [showIcon]: the selected tab shows
  * its icon before the label. [logAbove]: the Log button stands above the pill
- * instead of beside it. [logLabel]: there is room for the Log button's "Log" text.
+ * instead of beside it.
  */
-internal data class NavBarFit(val tabPadding: Dp, val showIcon: Boolean, val logAbove: Boolean, val logLabel: Boolean)
+internal data class NavBarFit(val tabPadding: Dp, val showIcon: Boolean, val logAbove: Boolean)
 
 /**
- * The [FloatingNavBar] layout for [labels] (each tab's label width in its bold,
- * selected style), a Log label [logLabel] wide, in [room] (the bar's width inside
- * its margins). The first that fits wins: the pill beside the Log button with the
- * selected icon, then without the icon, then the Log button above a pill that takes
- * the whole width (the old FAB's place), with the icon, then without. A tab keeps
- * at least [NavTabMinPadding] each side. The result does not depend on the selected
- * tab or on whether Today's Log button shows, so the tabs keep their place across
- * destinations.
+ * The width the pill's labels take together, the most over the possible
+ * selections: the selected tab's label in [bold], the others in [regular] (each
+ * tab's label width in that weight). Sizing the pill to it keeps the pill's width
+ * the same whichever tab is selected.
  */
-internal fun fitNavBar(labels: List<Dp>, logLabel: Dp, room: Dp): NavBarFit {
+internal fun pillLabelsWidth(bold: List<Int>, regular: List<Int>): Int {
+    val all = regular.sum()
+    return bold.indices.maxOf { all - regular[it] + bold[it] }
+}
+
+/**
+ * The [FloatingNavBar] layout for [tabs] tabs whose labels take [text] (see
+ * [pillLabelsWidth]) in [room] (the bar's width inside its margins). The first
+ * that fits wins: the pill beside the Log button with the selected icon, then
+ * without the icon, each tab keeping at least [NavTabMinPadding] a side; else the
+ * Log button above a pill that may take the whole width, without the icon, its
+ * tabs' padding down to none. Each step gives up what the one before it showed, so
+ * a narrower window or a larger font never shows more. The result does not depend
+ * on the selected tab, so the pill and Log keep their size and place on every
+ * destination.
+ */
+internal fun fitNavBar(text: Dp, tabs: Int, room: Dp): NavBarFit {
     // 1dp of slack: dp → px rounding must never leave a label a pixel short.
     val usable = room - 1.dp
-    val text = labels.fold(0.dp) { sum, w -> sum + w }
     fun padding(width: Dp, icon: Boolean): Dp {
-        val content = text + if (icon) NavIconSize + Space.Md.dp else 0.dp
-        return (width - NavPillInset * 2 - content) / (labels.size * 2)
+        val content = text + if (icon) NavIconSize + NavIconGap else 0.dp
+        return (width - NavPillInset * 2 - content) / (tabs * 2)
     }
-    fun pillWidth(pad: Dp, icon: Boolean): Dp =
-        text + (if (icon) NavIconSize + Space.Md.dp else 0.dp) + pad * (labels.size * 2) + NavPillInset * 2
-    val logWide = Space.Screen.dp * 2 + LogIconSize + Space.Md.dp + logLabel
-    for (above in listOf(false, true)) {
-        val width = if (above) usable else usable - LargeControlHeight - Space.Md.dp
-        for (icon in listOf(true, false)) {
-            val p = padding(width, icon)
-            if (p < NavTabMinPadding) continue
-            val pad = minOf(p, NavTabPadding)
-            val logRoom = if (above) usable else usable - pillWidth(pad, icon) - Space.Md.dp
-            return NavBarFit(pad, icon, above, logLabel = logRoom >= logWide)
-        }
+    val beside = usable - LargeControlHeight - NavGroupGap
+    for (icon in listOf(true, false)) {
+        val p = padding(beside, icon)
+        if (p >= NavTabMinPadding) return NavBarFit(minOf(p, NavTabPadding), icon, logAbove = false)
     }
-    return NavBarFit(maxOf(0.dp, padding(usable, icon = false)), showIcon = false, logAbove = true, logLabel = false)
+    return NavBarFit(padding(usable, icon = false).coerceIn(0.dp, NavTabPadding), showIcon = false, logAbove = true)
 }
 
 /**
  * Floating navigation bar (chrome §1), after Google Photos' floating bottom bar
- * (2026): the three destinations in a pill that floats [Space.Screen] above the
- * system navigation bar and in from the start edge, the content scrolling on
- * under and around it, and on Today the Log button ([onLog]) floating at the end.
- * Unselected tabs show their label; the selected tab is a solid `Accent` pill with
- * its icon (Today's filled) and label in `OnAccent`. [logExpanded]: the Log button
- * shows "Log" beside its "+" where it fits ([fitNavBar]). Behind the system's
- * 3-button bar (not the gesture handle, not iOS's home indicator) a band of the
- * ground keeps its buttons off the content.
+ * (2026): the three destinations in a pill and the round Log button ([onLog])
+ * beside it, centered as one group that floats [Space.Screen] above the system
+ * navigation bar, the content scrolling on under and around it. Unselected tabs
+ * show their label; the selected tab is a solid `Accent` pill with its icon
+ * (Today's filled) and label in `OnAccent`. Behind the system's 3-button bar (not
+ * the gesture handle, not iOS's home indicator) a band of the ground keeps its
+ * buttons off the content.
  */
 @Composable
-fun FloatingNavBar(selected: Dest, onSelect: (Dest) -> Unit, onLog: (() -> Unit)?, logExpanded: Boolean, modifier: Modifier = Modifier) {
+fun FloatingNavBar(selected: Dest, onSelect: (Dest) -> Unit, onLog: () -> Unit, modifier: Modifier = Modifier) {
     val labels = Dest.entries.map { stringResource(it.labelRes) }
     val logLabel = stringResource(Res.string.main_log)
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    fun widthOf(text: String, style: TextStyle) = with(density) { measurer.measure(text, style, maxLines = 1, softWrap = false).size.width.toDp() }
+    fun widthPx(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+    val textPx = pillLabelsWidth(labels.map { widthPx(it, Type.Chip) }, labels.map { widthPx(it, Type.ChipRegular) })
     Box(modifier.fillMaxWidth()) {
         Box(
             Modifier
@@ -213,19 +226,21 @@ fun FloatingNavBar(selected: Dest, onSelect: (Dest) -> Unit, onLog: (() -> Unit)
                 .navigationBarsPadding()
                 .padding(start = Space.Screen.dp, end = Space.Screen.dp, bottom = Space.Screen.dp),
         ) {
-            val fit = fitNavBar(labels.map { widthOf(it, Type.Chip) }, widthOf(logLabel, LogLabelStyle), maxWidth)
-            val logShown = logExpanded && fit.logLabel
-            val chrome = Modifier.testTag("bottom-nav").traversalGroup()
-            if (fit.logAbove && onLog != null) {
-                Column(chrome.fillMaxWidth(), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Space.Md.dp)) {
-                    LogButton(onLog, logShown, logLabel)
-                    Box(Modifier.fillMaxWidth()) { NavPill(selected, onSelect, labels, fit) }
+            val fit = fitNavBar(with(density) { textPx.toDp() }, labels.size, maxWidth)
+            val chrome = Modifier.testTag("bottom-nav").traversalGroup().fillMaxWidth()
+            if (fit.logAbove) {
+                Column(chrome, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(NavGroupGap)) {
+                    LogButton(onLog, logLabel)
+                    NavPill(selected, onSelect, labels, textPx, fit)
                 }
             } else {
-                Row(chrome.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    NavPill(selected, onSelect, labels, fit)
-                    Spacer(Modifier.weight(1f))
-                    if (onLog != null) LogButton(onLog, logShown, logLabel)
+                Row(
+                    chrome,
+                    horizontalArrangement = Arrangement.spacedBy(NavGroupGap, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    NavPill(selected, onSelect, labels, textPx, fit)
+                    LogButton(onLog, logLabel)
                 }
             }
         }
@@ -233,37 +248,54 @@ fun FloatingNavBar(selected: Dest, onSelect: (Dest) -> Unit, onLog: (() -> Unit)
 }
 
 /** The pill of the three tabs: one pick-one group, each tab a Role.Tab named by its
- *  visible label (the icon's description is null, so TalkBack reads the tab once). */
+ *  visible label (the icon's description is null, so TalkBack reads the tab once).
+ *  A tab is as wide as what it shows (unselected its label, selected its icon and
+ *  label), so the tabs shift inside the pill when the selection moves, as Photos'
+ *  do, over [MotionMedium]. The pill is as wide as its widest selection ([textPx],
+ *  see [pillLabelsWidth]) on every destination, its tabs centered in it, so neither
+ *  the pill nor the Log button beside it moves. */
 @Composable
-private fun NavPill(selected: Dest, onSelect: (Dest) -> Unit, labels: List<String>, fit: NavBarFit) {
+private fun NavPill(selected: Dest, onSelect: (Dest) -> Unit, labels: List<String>, textPx: Int, fit: NavBarFit) {
+    val density = LocalDensity.current
+    // In whole pixels, as the tabs' padding, icon and gap are laid out, so the
+    // labels get exactly their measured width.
+    val widthPx = with(density) {
+        textPx + NavPillInset.roundToPx() * 2 + fit.tabPadding.roundToPx() * 2 * labels.size +
+            if (fit.showIcon) NavIconSize.roundToPx() + NavIconGap.roundToPx() else 0
+    }
     Row(
         Modifier
             .testTag("nav-pill")
+            .width(with(density) { widthPx.toDp() })
             .shadow(FloatingShadow, PillShape)
             .background(BgElevated, PillShape)
             .border(1.dp, OnBgBody.copy(alpha = HairlineAlpha.Control), PillShape)
             .padding(NavPillInset)
             .selectableGroup(),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Dest.entries.forEachIndexed { i, dest ->
             val active = dest == selected
+            val fill by animateColorAsState(if (active) Accent else Accent.copy(alpha = 0f), tween(MotionMedium))
+            val ink by animateColorAsState(if (active) OnAccent else OnBgFaint, tween(MotionMedium))
             Row(
                 modifier = Modifier
                     .heightIn(min = ActionMinHeight)
                     .clip(PillShape)
-                    .background(if (active) Accent else Color.Transparent)
+                    .background(fill)
                     .selectable(selected = active, role = Role.Tab, onClick = { onSelect(dest) })
+                    .animateContentSize(tween(MotionMedium), alignment = Alignment.Center)
                     .padding(horizontal = fit.tabPadding),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Space.Md.dp),
+                horizontalArrangement = Arrangement.spacedBy(NavIconGap),
             ) {
                 if (active && fit.showIcon) {
                     Icon(painterResource(dest.iconSelected), contentDescription = null, tint = OnAccent, modifier = Modifier.size(NavIconSize))
                 }
                 Text(
                     labels[i],
-                    color = if (active) OnAccent else OnBgFaint,
+                    color = ink,
                     style = if (active) Type.Chip else Type.ChipRegular,
                     maxLines = 1,
                     softWrap = false,
@@ -273,16 +305,12 @@ private fun NavPill(selected: Dest, onSelect: (Dest) -> Unit, labels: List<Strin
     }
 }
 
-/** Text style of the Log button's "Log". */
-private val LogLabelStyle = Type.Body.copy(fontWeight = FontWeight.ExtraBold)
-
 /**
- * The bar's Log button: a 56dp `Accent` disc with the "+", widened to "+ Log"
- * while [expanded]. A button named "Log" either way; the visible text is cleared
- * from the semantics so TalkBack does not read it twice.
+ * The bar's Log button: a 56dp `Accent` disc with the "+", as Photos' round
+ * button carries only its icon. A button named "Log" ([label]).
  */
 @Composable
-private fun LogButton(onClick: () -> Unit, expanded: Boolean, label: String) {
+private fun LogButton(onClick: () -> Unit, label: String) {
     Surface(
         onClick = onClick,
         modifier = Modifier.testTag("log-fab").semantics {
@@ -295,18 +323,8 @@ private fun LogButton(onClick: () -> Unit, expanded: Boolean, label: String) {
         contentColor = OnAccent,
         shadowElevation = FloatingShadow,
     ) {
-        Row(
-            Modifier
-                .clearAndSetSemantics {}
-                .animateContentSize()
-                .heightIn(min = LargeControlHeight)
-                .widthIn(min = LargeControlHeight)
-                .padding(horizontal = if (expanded) Space.Screen.dp else 0.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Space.Md.dp, Alignment.CenterHorizontally),
-        ) {
+        Box(Modifier.size(LargeControlHeight), contentAlignment = Alignment.Center) {
             Icon(painterResource(Res.drawable.ic_action_log_plus), contentDescription = null, modifier = Modifier.size(LogIconSize))
-            if (expanded) Text(label, style = LogLabelStyle, maxLines = 1, softWrap = false)
         }
     }
 }
@@ -314,14 +332,14 @@ private fun LogButton(onClick: () -> Unit, expanded: Boolean, label: String) {
 /**
  * Side navigation rail: the [FloatingNavBar]'s three destinations (each with its
  * icon and label, Material's rail indicator) down the start edge, with Log
- * ([onLog], Today only, as in the bar) at its top. Used instead of the floating
- * bar on a wide or a short window, and whenever the bar would be laid over the
- * pinned safety banner (a portrait phone at a large font under a hold): beside the
- * banner, never over it. With [showBrand] (a short window, where the wordmark bar
- * is left out) the route mark tops the rail.
+ * ([onLog], on every destination, as in the bar) at its top. Used instead of the
+ * floating bar on a wide or a short window, and whenever the bar would be laid over
+ * the pinned safety banner (a portrait phone at a large font under a hold): beside
+ * the banner, never over it. With [showBrand] (a short window, where the wordmark
+ * bar is left out) the route mark tops the rail.
  */
 @Composable
-fun MilestoneNavRail(selected: Dest, onSelect: (Dest) -> Unit, onLog: (() -> Unit)?, showBrand: Boolean = false) {
+fun MilestoneNavRail(selected: Dest, onSelect: (Dest) -> Unit, onLog: () -> Unit, showBrand: Boolean = false) {
     val logLabel = stringResource(Res.string.main_log)
     // Material's NavigationRail puts its header inside the destinations' pick-one
     // group, so TalkBack read Log as a fourth tab; Log and the mark sit above the
@@ -345,16 +363,14 @@ fun MilestoneNavRail(selected: Dest, onSelect: (Dest) -> Unit, onLog: (() -> Uni
                 modifier = Modifier.padding(vertical = Space.Md.dp).size(BrandMarkSize).testTag("rail-brand"),
             )
         }
-        onLog?.let { log ->
-            FloatingActionButton(
-                onClick = log,
-                modifier = Modifier.padding(bottom = Space.Md.dp).testTag("log-fab").semantics { contentDescription = logLabel },
-                containerColor = Accent,
-                contentColor = OnAccent,
-                shape = RoundedCornerShape(Space.Card.dp),
-            ) {
-                Icon(painterResource(Res.drawable.ic_action_log_plus), contentDescription = null, modifier = Modifier.size(20.dp))
-            }
+        FloatingActionButton(
+            onClick = onLog,
+            modifier = Modifier.padding(bottom = Space.Md.dp).testTag("log-fab").semantics { contentDescription = logLabel },
+            containerColor = Accent,
+            contentColor = OnAccent,
+            shape = RoundedCornerShape(Space.Card.dp),
+        ) {
+            Icon(painterResource(Res.drawable.ic_action_log_plus), contentDescription = null, modifier = Modifier.size(LogIconSize))
         }
         Column(
             modifier = Modifier.selectableGroup(),

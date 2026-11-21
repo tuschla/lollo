@@ -34,6 +34,7 @@ import app.milestone.ReadinessSignal
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -96,6 +97,63 @@ class LayoutRegressionTest : UiProbeTest() {
         Espresso.pressBackUnconditionally()
         settle()
         assertNotEquals("Back changes what the user sees:\n${screenDump()}", before, fingerprint())
+    }
+
+    /** Profile's race predictor in landscape with its keypad open and the form
+     *  scrolled back to its title: Back closes the sheet. It used to fold the
+     *  keypad out of sight, so the screen did not change (RandomUiWalkTest.hybrid,
+     *  "Back did nothing"). */
+    @Test
+    fun landscapeRacePredictor_backWithTheKeypadScrolledAway_closesTheSheet() {
+        landscape()
+        QaHarness.seedLog(ctx, listOf(QaHarness.hybridFiveKProfile()))
+        rule.launchApp()
+        settle()
+        rule.onNode(hasText(str(R.string.main_dest_profile)) and hasClickAction() and hasAnyAncestor(hasTestTag("nav-rail"))).performClick()
+        settle()
+        rule.onNode(hasText(str(R.string.main_tool_race_title)) and hasClickAction()).performScrollTo().performClick()
+        settle()
+        rule.onNode(hasClickAction() and hasContentDescription(str(R.string.log_field_recent_min), substring = true))
+            .scrollClearOfChrome().performClick()
+        settle()
+        assertTrue("precondition: the keypad is open and on screen:\n${screenDump()}", keypadComposed() && !offscreenKeypad())
+        scrollSheetForm(-SCROLL_PAST_END)
+        assertTrue("precondition: the keypad is scrolled out of view:\n${screenDump()}", offscreenKeypad())
+        Espresso.pressBackUnconditionally()
+        settle()
+        assertEquals("Back closes the race predictor sheet:\n${screenDump()}", 1, roots().size)
+    }
+
+    /** The Log activity editor (under 18) in landscape with a typed value and its
+     *  keypad scrolled out of view: Back asks to discard the entry instead of
+     *  folding the keypad out of sight. */
+    @Test
+    fun landscapeLogActivity_backWithTheKeypadScrolledAway_asksToDiscard() {
+        landscape()
+        QaHarness.seedLog(ctx, listOf(QaHarness.youthProfile()))
+        rule.launchApp()
+        settle()
+        rule.scrollTodayTo(hasText(str(R.string.activity_log_action)) and hasClickAction())
+        rule.onNode(hasText(str(R.string.activity_log_action)) and hasClickAction()).scrollClearOfChrome().performClick()
+        settle()
+        rule.onNode(hasClickAction() and hasContentDescription(str(R.string.activity_field_minutes), substring = true))
+            .scrollClearOfChrome().performClick()
+        settle()
+        rule.onNode(hasClickAction() and hasText("4") and hasAnyAncestor(hasTestTag("numeric-keypad"))).scrollClearOfChrome().performClick()
+        settle()
+        assertTrue("precondition: the keypad is open and on screen:\n${screenDump()}", keypadComposed() && !offscreenKeypad())
+        scrollSheetForm(SCROLL_PAST_END)
+        assertTrue("precondition: the keypad is scrolled out of view:\n${screenDump()}", offscreenKeypad())
+        Espresso.pressBackUnconditionally()
+        settle()
+        assertEquals("Back asks to discard the entry:\n${screenDump()}", 1, rule.onAllNodes(hasText(str(R.string.log_discard_title))).fetchSemanticsNodes().size)
+    }
+
+    /** Scroll the top window's form by [dy] px with its scroll action (clamped at the ends). */
+    private fun scrollSheetForm(dy: Float) {
+        val scroller = flatten(roots().last()).first { it.config.getOrNull(SemanticsActions.ScrollBy) != null && it.isVisible() }
+        node(scroller).performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, dy) }
+        settle()
     }
 
     /** The Log set editor's exercise search (a Widgets.kt `SearchWell`) keeps an
@@ -393,6 +451,9 @@ class LayoutRegressionTest : UiProbeTest() {
     }
 
     private companion object {
+        /** More than any sheet form scrolls. */
+        const val SCROLL_PAST_END = 100_000f
+
         /** A History lift-session card's count line ("1 exercise · 1 set"). */
         val LIFT_COUNT = Regex("""^\d+ exercises? · \d+ sets?$""")
     }

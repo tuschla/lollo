@@ -218,13 +218,12 @@ fun LogRunEditor(
             }
         },
     ) {
-        BackHandler(enabled = keypadOpen) { keypadOpen = false }
         fun edited() {
             fresh = false
             dirty = true
         }
         val keypadUnder: @Composable (RunField) -> Unit = { field ->
-            KeypadPanel(keypadOpen && active == field, alsoReveal = fieldRequesters.getValue(field)) {
+            KeypadPanel(keypadOpen && active == field, alsoReveal = fieldRequesters.getValue(field), onBack = { keypadOpen = false }) {
                 when (field) {
                     RunField.Distance -> NumericKeypad(distText, fresh, { distText = it; distFresh = false; edited() })
                     RunField.Duration -> NumericKeypad(

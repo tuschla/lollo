@@ -28,12 +28,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -346,11 +351,15 @@ fun NumericKeypad(
  *  opens, then [alsoReveal] (the field it types into), so a short window never
  *  leaves the keypad below the fold. Under a side-by-side editor
  *  ([LocalKeypadDock]) the keypad stands in the controls column beside the form
- *  instead, and only the field is revealed. */
+ *  instead, and only the field is revealed. System Back calls [onBack] (fold the
+ *  keypad) while any of the keypad is on screen; once the form is scrolled away
+ *  from it, Back goes on to the sheet (close, or ask to discard), since folding a
+ *  keypad out of sight would change nothing the user sees. */
 @Composable
 fun KeypadPanel(
     open: Boolean,
     alsoReveal: BringIntoViewRequester? = null,
+    onBack: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     if (!open) return
@@ -361,14 +370,17 @@ fun KeypadPanel(
         requester.bringIntoView()
         alsoReveal?.bringIntoView()
     }
+    var onScreen by remember { mutableStateOf(true) }
+    if (onBack != null) BackHandler(enabled = onScreen, onBack = onBack)
+    val tracked = Modifier.onGloballyPositioned { onScreen = !it.boundsInWindow().isEmpty }
     if (dock != null) {
         // Docked beside the form: what stays here is an empty marker right under
         // the field, scrolled into view so the field being typed is on screen.
-        Docked(dock) { CompositionLocalProvider(LocalKeypadBeside provides true, content = content) }
+        Docked(dock) { Box(tracked) { CompositionLocalProvider(LocalKeypadBeside provides true, content = content) } }
         Box(Modifier.fillMaxWidth().bringIntoViewRequester(requester))
         return
     }
-    Box(Modifier.bringIntoViewRequester(requester)) { content() }
+    Box(Modifier.bringIntoViewRequester(requester).then(tracked)) { content() }
 }
 
 @Composable
